@@ -31,17 +31,17 @@ jobs:
           mkdir -p ~/.ssh
           printf "%s\n" "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/uniconvert-key
           chmod 600 ~/.ssh/uniconvert-key
-          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+          ssh-keyscan -T 30 -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts || true
 
       - name: Upload jar to EC2
         run: |
           JAR_FILE=$(ls build/libs/*SNAPSHOT.jar | grep -v plain | head -n 1)
-          scp -i ~/.ssh/uniconvert-key "$JAR_FILE" \
+          scp -o StrictHostKeyChecking=no -i ~/.ssh/uniconvert-key "$JAR_FILE" \
             ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/ubuntu/app.jar
 
       - name: Restart Spring Boot service
         run: |
-          ssh -i ~/.ssh/uniconvert-key \
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/uniconvert-key \
             ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} \
             "sudo systemctl restart uniconvert"
 
