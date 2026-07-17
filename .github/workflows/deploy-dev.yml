@@ -47,5 +47,14 @@ jobs:
 
       - name: Health check
         run: |
-          sleep 10
-          curl -f https://api.uniconvert.dev/api/v1/health
+          for i in {1..12}; do
+            echo "Health check attempt $i..."
+            if curl -f https://api.uniconvert.dev/api/v1/health; then
+              echo "Health check passed"
+              exit 0
+            fi
+            sleep 5
+          done
+
+          echo "Health check failed"
+          exit 1
