@@ -20,6 +20,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+import java.io.IOException;
+
 @Configuration
 @RequiredArgsConstructor
 public class SecurityConfig {
@@ -80,7 +82,7 @@ public class SecurityConfig {
         return provider;
     }
 
-    private void writeErrorResponse(HttpServletResponse response, int status, ErrorCode errorCode) throws Exception {
+    private void writeErrorResponse(HttpServletResponse response, int status, ErrorCode errorCode) throws IOException {
         response.setStatus(status);
         response.setContentType("application/json;charset=UTF-8");
         new ObjectMapper().writeValue(
