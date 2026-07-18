@@ -1,0 +1,261 @@
+# Auth — path definitions (split out of docs/openapi.yaml for lower merge-conflict risk)
+# Edit here, then regenerate docs/openapi.yaml via:
+#   npx -y @redocly/cli bundle docs/openapi/openapi.yaml -o docs/openapi.yaml
+
+sign-up:
+  post:
+    tags: [Auth]
+    summary: 자체 회원가입 | 텐텐
+    description: |
+      [확인 필요]
+      - Figma에는 약관 동의가 "약관동의" 화면으로 별도 분리되어 있습니다. 약관 동의 데이터가
+        이 API 요청(terms 배열)에 함께 전달되는지, 아니면 별도 API/스텝으로 저장되는지 확정 필요.
+    security: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [email, password, terms]
+            properties:
+              email:
+                type: string
+                format: email
+                description: 로그인 이메일
+              password:
+                type: string
+                format: password
+                description: 영문·숫자·특수문자 포함
+              terms:
+                type: array
+                description: 약관 동의 목록. SERVICE, PRIVACY는 필수 동의.
+                items:
+                  type: object
+                  required: [termsType, isAgreed]
+                  properties:
+                    termsType:
+                      $ref: '../components/schemas.yaml#/TermsType'
+                    termsVersion:
+                      type: string
+                      nullable: true
+                    isAgreed:
+                      type: boolean
+    responses:
+      '200':
+        description: 회원가입 성공
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '../components/schemas.yaml#/ApiResponse'
+                - type: object
+                  properties:
+                    data:
+                      type: object
+                      properties:
+                        userId:
+                          type: integer
+                          format: int64
+                          description: 생성된 회원 ID
+                        accessToken:
+                          type: string
+                        refreshToken:
+                          type: string
+                        isOnboardingCompleted:
+                          type: boolean
+      '400':
+        $ref: '../components/responses.yaml#/BadRequest'
+      '409':
+        $ref: '../components/responses.yaml#/Conflict'
+
+login:
+  post:
+    tags: [Auth]
+    summary: 자체 로그인 | 텐텐
+    security: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [email, password]
+            properties:
+              email:
+                type: string
+                format: email
+              password:
+                type: string
+                format: password
+    responses:
+      '200':
+        description: 로그인 성공
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '../components/schemas.yaml#/ApiResponse'
+                - type: object
+                  properties:
+                    data:
+                      type: object
+                      properties:
+                        accessToken:
+                          type: string
+                        refreshToken:
+                          type: string
+                        isOnboardingCompleted:
+                          type: boolean
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+
+social-login:
+  post:
+    tags: [Auth]
+    summary: 소셜 로그인/회원가입 (Google/Apple) | 텐텐
+    description: |
+      [확인 필요]
+      - Apple 로그인도 함께 제공할지 (코드의 AuthProvider에는 APPLE도 존재하나 Figma에서는
+        Google 버튼만 확인됨)
+    security: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [provider, idToken]
+            properties:
+              provider:
+                $ref: '../components/schemas.yaml#/AuthProvider'
+              idToken:
+                type: string
+                description: 소셜 provider가 발급한 ID Token
+    responses:
+      '200':
+        description: 소셜 로그인/회원가입 성공
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '../components/schemas.yaml#/ApiResponse'
+                - type: object
+                  properties:
+                    data:
+                      type: object
+                      properties:
+                        userId:
+                          type: integer
+                          format: int64
+                        accessToken:
+                          type: string
+                        refreshToken:
+                          type: string
+                        isOnboardingCompleted:
+                          type: boolean
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+
+email-verifications:
+  post:
+    tags: [Auth]
+    summary: 이메일 인증 메일 발송 | 텐텐
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [email]
+            properties:
+              email:
+                type: string
+                format: email
+    responses:
+      '200':
+        description: 인증 메일 발송 성공
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '../components/schemas.yaml#/ApiResponse'
+                - type: object
+                  properties:
+                    data:
+                      type: object
+                      properties:
+                        expiresAt:
+                          type: string
+                          format: date-time
+      '400':
+        $ref: '../components/responses.yaml#/BadRequest'
+
+email-verifications-confirm:
+  post:
+    tags: [Auth]
+    summary: 이메일 인증 완료 | 텐텐
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [token]
+            properties:
+              token:
+                type: string
+    responses:
+      '200':
+        description: 인증 완료
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '../components/schemas.yaml#/ApiResponse'
+                - type: object
+                  properties:
+                    data:
+                      type: object
+                      properties:
+                        isEmailVerified:
+                          type: boolean
+      '400':
+        $ref: '../components/responses.yaml#/BadRequest'
+
+token-reissue:
+  post:
+    tags: [Auth]
+    summary: Access Token 재발급 | 텐텐
+    security: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [refreshToken]
+            properties:
+              refreshToken:
+                type: string
+    responses:
+      '200':
+        description: 재발급 성공
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '../components/schemas.yaml#/ApiResponse'
+                - type: object
+                  properties:
+                    data:
+                      type: object
+                      properties:
+                        accessToken:
+                          type: string
+                        refreshToken:
+                          type: string
+                          description: 회전(rotate) 정책 적용 시 새 Refresh Token
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+
