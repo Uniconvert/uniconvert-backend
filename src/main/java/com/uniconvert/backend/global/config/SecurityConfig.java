@@ -80,12 +80,16 @@ public class SecurityConfig {
         return provider;
     }
 
-    private void writeErrorResponse(HttpServletResponse response, int status, ErrorCode errorCode) throws Exception {
-        response.setStatus(status);
-        response.setContentType("application/json;charset=UTF-8");
-        new ObjectMapper().writeValue(
-                response.getWriter(),
-                ApiResponse.failure(errorCode.getCode(), errorCode.getMessage())
-        );
+    private void writeErrorResponse(HttpServletResponse response, int status, ErrorCode errorCode) {
+        try {
+            response.setStatus(status);
+            response.setContentType("application/json;charset=UTF-8");
+            new ObjectMapper().writeValue(
+                    response.getWriter(),
+                    ApiResponse.failure(errorCode.getCode(), errorCode.getMessage())
+            );
+        } catch (Exception exception) {
+            throw new IllegalStateException("Failed to write security error response", exception);
+        }
     }
 }
