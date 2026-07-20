@@ -1,0 +1,150 @@
+# User & Onboarding — path definitions (split out of docs/openapi.yaml for lower merge-conflict risk)
+# Edit here, then regenerate docs/openapi.yaml via:
+#   npx -y @redocly/cli bundle docs/openapi/openapi.yaml -o docs/openapi.yaml
+
+users-me:
+  get:
+    tags: [User & Onboarding]
+    summary: 내 정보 조회 | 텐텐
+    description: |
+      [변경 필요]
+      - Figma 설정 화면에는 이메일("Hamester@gmail.com")과 프로필 이미지 업로드 UI가 표시됩니다.
+        기존 문서 응답(userId, nickname, homeCurrency, isOnboardingCompleted)에는 없는
+        email, imageUrl 필드 추가가 필요합니다. (User 엔티티에는 이미 email, imageUrl 컬럼 존재)
+    responses:
+      '200':
+        description: 조회 성공
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '../components/schemas.yaml#/ApiResponse'
+                - type: object
+                  properties:
+                    data:
+                      $ref: '../components/schemas.yaml#/UserMeResponse'
+      '401':
+        $ref: '../components/responses.yaml#/Unauthorized'
+
+  patch:
+    tags: [User & Onboarding]
+    summary: 내 정보 수정 (설정) | 텐텐
+    description: |
+      [확인 필요]
+      - Figma 설정 화면에서 timezone을 수정하는 UI를 이번 분석 범위에서 확인하지 못했습니다.
+        온보딩에서만 설정하고 이후 변경 불가인지 확인 필요.
+      - 홈 통화 변경 시 기존 지출 재계산 여부는 프론트 확인 팝업 후 요청(기존 문서 메모 유지).
+    requestBody:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              nickname:
+                type: string
+                nullable: true
+              homeCurrency:
+                type: string
+                nullable: true
+              localCurrencies:
+                type: array
+                nullable: true
+                items:
+                  type: string
+              timezone:
+                type: string
+                nullable: true
+                description: "[확인 필요] 설정 화면에서 실제로 수정 가능한지 미확인"
+    responses:
+      '200':
+        description: 수정 성공
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '../components/schemas.yaml#/ApiResponse'
+                - type: object
+                  properties:
+                    data:
+                      $ref: '../components/schemas.yaml#/UserMeResponse'
+      '400':
+        $ref: '../components/responses.yaml#/BadRequest'
+
+onboarding-complete:
+  post:
+    tags: [User & Onboarding]
+    summary: 온보딩 완료 (통화·예산·메인 지갑 일괄 저장) | 텐텐
+    description: |
+      [추가 필요]
+      - Figma "프로필 설정" 화면에는 "내가 가장 관리하고 싶은 목표는 무엇인가요? (복수 선택 가능)"
+        라는 질문과 "여행/취미", "저축", "학업비" 선택지가 있습니다. 기존 요청 필드에는
+        이 목표(goal) 값을 저장할 필드가 없습니다.
+      - 프로필 이미지 업로드 UI("이미지 업로드" 버튼)가 프로필 설정 화면에 있으나 요청 필드에 없음.
+
+      [확인 필요]
+      - monthlyBudgetHome, mainWalletInitialBalance를 입력받는 화면을 이번 Figma 분석 범위에서
+        명확히 특정하지 못했습니다. 별도 스텝인지, 다른 값으로 대체되었는지 확인 필요.
+      - 서비스 약관 동의 날짜를 정확히 기록해야 한다는 담당자 메모(P0 v3 문서 내)가 있어
+        TermsAgreement.agreedAt 저장 시점을 온보딩 완료 시점과 맞출지 별도 스텝(회원가입 시)으로
+        할지 확인 필요.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [nickname, homeCurrency, localCurrencies, timezone]
+            properties:
+              nickname:
+                type: string
+              homeCurrency:
+                type: string
+              localCurrencies:
+                type: array
+                items:
+                  type: string
+              timezone:
+                type: string
+              monthlyBudgetHome:
+                type: number
+                nullable: true
+                description: "[확인 필요] 입력 화면 미특정"
+              mainWalletInitialBalance:
+                type: number
+                nullable: true
+                description: "[확인 필요] 입력 화면 미특정"
+              goals:
+                type: array
+                nullable: true
+                description: "[추가 필요] Figma 프로필 설정 화면의 목표(복수 선택) 값"
+                items:
+                  type: string
+                  example: "TRAVEL_HOBBY"
+              profileImageUrl:
+                type: string
+                nullable: true
+                description: "[추가 필요] Figma 프로필 이미지 업로드 UI에 대응하는 필드"
+    responses:
+      '200':
+        description: 온보딩 완료
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '../components/schemas.yaml#/ApiResponse'
+                - type: object
+                  properties:
+                    data:
+                      type: object
+                      properties:
+                        mainWalletId:
+                          type: integer
+                          format: int64
+                        budgetId:
+                          type: integer
+                          format: int64
+                        isOnboardingCompleted:
+                          type: boolean
+      '400':
+        $ref: '../components/responses.yaml#/BadRequest'
+

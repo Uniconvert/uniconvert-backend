@@ -1,0 +1,351 @@
+# Shared OpenAPI schemas
+
+ApiResponse:
+  type: object
+  description: |
+    공통 응답 포맷 (com.uniconvert.backend.global.response.ApiResponse 와 동일 구조).
+    data는 성공 시 각 API 응답 데이터로 대체되며, 실패 시 null입니다.
+  properties:
+    success:
+      type: boolean
+    code:
+      type: string
+      example: SUCCESS
+    message:
+      type: string
+      example: 요청이 성공했습니다.
+    data:
+      type: object
+      nullable: true
+
+PageResponse:
+  type: object
+  properties:
+    content:
+      type: array
+      items: {}
+    page:
+      type: integer
+    size:
+      type: integer
+    hasNext:
+      type: boolean
+
+TermsType:
+  type: string
+  description: com.uniconvert.backend.domain.auth.enums.TermsType
+  enum: [SERVICE, PRIVACY, MARKETING]
+
+AuthProvider:
+  type: string
+  description: com.uniconvert.backend.domain.auth.enums.AuthProvider
+  enum: [GOOGLE, APPLE]
+
+WalletType:
+  type: string
+  description: com.uniconvert.backend.domain.wallet.enums.WalletType
+  enum: [BANK_ACCOUNT, CASH, POT]
+
+MainWalletTransactionType:
+  type: string
+  description: |
+    com.uniconvert.backend.domain.wallet.enums.MainWalletTransactionType
+    [변경 필요] TRANSFER_OUT은 기존 API 설계 문서에는 언급되지 않은 값입니다.
+  enum: [DEPOSIT, MANUAL_SET, TRANSFER_OUT]
+
+ExpenseRateMode:
+  type: string
+  description: com.uniconvert.backend.domain.expense.enums.ExpenseRateMode
+  enum: [DAILY_AVERAGE, MANUAL]
+
+RateUpdateMode:
+  type: string
+  description: com.uniconvert.backend.domain.expense.enums.RateUpdateMode (기존 문서의 AUTO/MANUAL과 이름이 다름)
+  enum: [KEEP, RECALCULATE]
+
+DailyRateStatus:
+  type: string
+  description: com.uniconvert.backend.domain.exchange.enums.DailyRateStatus
+  enum: [PRELIMINARY, FINAL]
+
+UserMeResponse:
+  type: object
+  properties:
+    userId:
+      type: integer
+      format: int64
+    nickname:
+      type: string
+      nullable: true
+    email:
+      type: string
+      description: "[변경 필요] 기존 문서 응답에는 없었으나 Figma 설정 화면에 노출됨"
+    imageUrl:
+      type: string
+      nullable: true
+      description: "[변경 필요] 기존 문서 응답에는 없었으나 Figma 프로필 이미지 업로드 UI 존재"
+    homeCurrency:
+      type: string
+    localCurrencyCode:
+      type: string
+      nullable: true
+    timezone:
+      type: string
+    isOnboardingCompleted:
+      type: boolean
+
+CurrencyResponse:
+  type: object
+  properties:
+    code:
+      type: string
+      description: ISO 4217 3자리
+    nameKo:
+      type: string
+    nameEn:
+      type: string
+    symbol:
+      type: string
+    isSupported:
+      type: boolean
+
+CategoryResponse:
+  type: object
+  properties:
+    categoryId:
+      type: integer
+      format: int64
+    name:
+      type: string
+    iconKey:
+      type: string
+      nullable: true
+    sortOrder:
+      type: integer
+
+BudgetResponse:
+  type: object
+  properties:
+    budgetId:
+      type: integer
+      format: int64
+    yearMonth:
+      type: string
+    monthlyLimitHome:
+      type: number
+
+MainWalletResponse:
+  type: object
+  properties:
+    mainWalletId:
+      type: integer
+      format: int64
+    currency:
+      type: string
+    currentBalance:
+      type: number
+    updatedAt:
+      type: string
+      format: date-time
+
+SubWalletResponse:
+  type: object
+  properties:
+    subWalletId:
+      type: integer
+      format: int64
+    walletType:
+      $ref: '#/WalletType'
+    name:
+      type: string
+    currency:
+      type: string
+    currentBalance:
+      type: number
+    isLocked:
+      type: boolean
+    targetAmount:
+      type: number
+      nullable: true
+      description: "[추가 필요] Figma Pots 화면 목표 금액"
+    progressPercent:
+      type: number
+      nullable: true
+      description: "[추가 필요] 목표 대비 현재 저축 진행률"
+    iconKey:
+      type: string
+      nullable: true
+      description: "[추가 필요] Pots 대표 이미지/이모티콘"
+
+CurrentExchangeRateResponse:
+  type: object
+  properties:
+    fromCurrency:
+      type: string
+    toCurrency:
+      type: string
+    averageRate:
+      type: number
+    rateDate:
+      type: string
+      format: date
+    sampleCount:
+      type: integer
+    status:
+      $ref: '#/DailyRateStatus'
+
+ExchangeQuoteResponse:
+  type: object
+  properties:
+    amount:
+      type: number
+    appliedRate:
+      type: number
+    convertedAmount:
+      type: number
+    rateDate:
+      type: string
+      format: date
+    rateSource:
+      type: string
+      example: DAILY_AVERAGE
+
+ExpenseSummaryResponse:
+  type: object
+  properties:
+    expenseId:
+      type: integer
+      format: int64
+    subWalletId:
+      type: integer
+      format: int64
+    categoryId:
+      type: integer
+      format: int64
+    merchantName:
+      type: string
+      nullable: true
+    originalAmount:
+      type: number
+    originalCurrency:
+      type: string
+    convertedAmountHome:
+      type: number
+    spentAt:
+      type: string
+      format: date-time
+
+ExpenseDetailResponse:
+  type: object
+  properties:
+    expenseId:
+      type: integer
+      format: int64
+    subWalletId:
+      type: integer
+      format: int64
+    categoryId:
+      type: integer
+      format: int64
+    originalAmount:
+      type: number
+    appliedRate:
+      type: number
+    convertedAmountHome:
+      type: number
+    spentAt:
+      type: string
+      format: date-time
+
+DashboardResponse:
+  type: object
+  properties:
+    homeCurrency:
+      type: string
+    totalAssetHome:
+      type: number
+    lockedAssetHome:
+      type: number
+    availableAmountHome:
+      type: number
+    monthlyBudgetHome:
+      type: number
+    monthlyExpenseHome:
+      type: number
+    budgetUsagePercent:
+      type: number
+    potsAllocatedAmountHome:
+      type: number
+      nullable: true
+      description: "[추가 필요] Figma Pots 요약 영역과 정합성 확보"
+    characterMessage:
+      type: string
+      nullable: true
+      description: "[확인 필요] 캐릭터 문구를 API로 내려줄지 프론트 정적 배열로 둘지 미확정"
+    recentExpenses:
+      type: array
+      items:
+        $ref: '#/ExpenseSummaryResponse'
+
+MonthlyReportResponse:
+  type: object
+  properties:
+    yearMonth:
+      type: string
+    homeCurrency:
+      type: string
+    totalExpenseHome:
+      type: number
+    dailyExpenses:
+      type: array
+      items:
+        type: object
+        properties:
+          date:
+            type: string
+            format: date
+          amountHome:
+            type: number
+    comparedToYesterdayPercent:
+      type: number
+      nullable: true
+      description: "[추가 필요] Figma 리포트 화면의 전일 대비 증감률 문구"
+    categoryBreakdown:
+      type: array
+      nullable: true
+      description: "[확인 필요] /reports/categories 와 중복 여부 확인 필요"
+      items:
+        type: object
+        properties:
+          categoryId:
+            type: integer
+            format: int64
+          name:
+            type: string
+          amountHome:
+            type: number
+          percent:
+            type: number
+
+CategoryReportResponse:
+  type: object
+  properties:
+    yearMonth:
+      type: string
+    totalExpenseHome:
+      type: number
+    categories:
+      type: array
+      items:
+        type: object
+        properties:
+          categoryId:
+            type: integer
+            format: int64
+          name:
+            type: string
+          amountHome:
+            type: number
+          percent:
+            type: number
+

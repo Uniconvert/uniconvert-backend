@@ -1,0 +1,1816 @@
+# ============================================================================
+# GENERATED FILE — 직접 수정하지 마세요.
+#
+# 이 파일은 docs/openapi/ 아래 분할된 소스 파일들을 번들링해서 생성됩니다.
+# 수정은 반드시 docs/openapi/(paths/*.yaml, components/*.yaml)에서 하고,
+# 아래 명령으로 다시 생성하세요.
+#
+#   npx -y @redocly/cli bundle docs/openapi/openapi.yaml -o docs/openapi.yaml
+#
+# ============================================================================
+
+openapi: 3.0.3
+info:
+  title: Uniconvert API
+  version: v1
+  description: |
+    Uniconvert backend API documentation (draft).
+  contact:
+    name: Uniconvert
+servers:
+  - url: /api/v1
+security:
+  - bearerAuth: []
+tags:
+  - name: Auth
+    description: 인증·JWT (회원가입/로그인/이메일 인증/토큰 재발급)
+  - name: User & Onboarding
+    description: 내 정보, 온보딩, 설정
+  - name: Reference & Budget
+    description: 통화·카테고리 기준 데이터, 월 예산
+  - name: Wallet & Pot
+    description: 메인 지갑, 서브 지갑(Pot)
+  - name: Exchange Rate
+    description: 환율 조회 및 계산기
+  - name: Expense
+    description: 지출 등록·조회·수정·삭제, 영수증/명세서 업로드
+  - name: Dashboard & Report
+    description: 홈 대시보드, 리포트
+paths:
+  /auth/local/sign-up:
+    post:
+      tags:
+        - Auth
+      summary: 자체 회원가입 | 텐텐
+      description: |
+        [확인 필요]
+        - Figma에는 약관 동의가 "약관동의" 화면으로 별도 분리되어 있습니다. 약관 동의 데이터가
+          이 API 요청(terms 배열)에 함께 전달되는지, 아니면 별도 API/스텝으로 저장되는지 확정 필요.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+                - terms
+              properties:
+                email:
+                  type: string
+                  format: email
+                  description: 로그인 이메일
+                password:
+                  type: string
+                  format: password
+                  description: 영문·숫자·특수문자 포함
+                terms:
+                  type: array
+                  description: 약관 동의 목록. SERVICE, PRIVACY는 필수 동의.
+                  items:
+                    type: object
+                    required:
+                      - termsType
+                      - isAgreed
+                    properties:
+                      termsType:
+                        $ref: '#/components/schemas/TermsType'
+                      termsVersion:
+                        type: string
+                        nullable: true
+                      isAgreed:
+                        type: boolean
+      responses:
+        '200':
+          description: 회원가입 성공
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          userId:
+                            type: integer
+                            format: int64
+                            description: 생성된 회원 ID
+                          accessToken:
+                            type: string
+                          refreshToken:
+                            type: string
+                          isOnboardingCompleted:
+                            type: boolean
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /auth/local/login:
+    post:
+      tags:
+        - Auth
+      summary: 자체 로그인 | 텐텐
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+      responses:
+        '200':
+          description: 로그인 성공
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          accessToken:
+                            type: string
+                          refreshToken:
+                            type: string
+                          isOnboardingCompleted:
+                            type: boolean
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /auth/social/login:
+    post:
+      tags:
+        - Auth
+      summary: 소셜 로그인/회원가입 (Google/Apple) | 텐텐
+      description: |
+        [확인 필요]
+        - Apple 로그인도 함께 제공할지 (코드의 AuthProvider에는 APPLE도 존재하나 Figma에서는
+          Google 버튼만 확인됨)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - provider
+                - idToken
+              properties:
+                provider:
+                  $ref: '#/components/schemas/AuthProvider'
+                idToken:
+                  type: string
+                  description: 소셜 provider가 발급한 ID Token
+      responses:
+        '200':
+          description: 소셜 로그인/회원가입 성공
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          userId:
+                            type: integer
+                            format: int64
+                          accessToken:
+                            type: string
+                          refreshToken:
+                            type: string
+                          isOnboardingCompleted:
+                            type: boolean
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /auth/email-verifications:
+    post:
+      tags:
+        - Auth
+      summary: 이메일 인증 메일 발송 | 텐텐
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        '200':
+          description: 인증 메일 발송 성공
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          expiresAt:
+                            type: string
+                            format: date-time
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /auth/email-verifications/confirm:
+    post:
+      tags:
+        - Auth
+      summary: 이메일 인증 완료 | 텐텐
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - token
+              properties:
+                token:
+                  type: string
+      responses:
+        '200':
+          description: 인증 완료
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          isEmailVerified:
+                            type: boolean
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /auth/token/reissue:
+    post:
+      tags:
+        - Auth
+      summary: Access Token 재발급 | 텐텐
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - refreshToken
+              properties:
+                refreshToken:
+                  type: string
+      responses:
+        '200':
+          description: 재발급 성공
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          accessToken:
+                            type: string
+                          refreshToken:
+                            type: string
+                            description: 회전(rotate) 정책 적용 시 새 Refresh Token
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /users/me:
+    get:
+      tags:
+        - User & Onboarding
+      summary: 내 정보 조회 | 텐텐
+      description: |
+        [변경 필요]
+        - Figma 설정 화면에는 이메일("Hamester@gmail.com")과 프로필 이미지 업로드 UI가 표시됩니다.
+          기존 문서 응답(userId, nickname, homeCurrency, isOnboardingCompleted)에는 없는
+          email, imageUrl 필드 추가가 필요합니다. (User 엔티티에는 이미 email, imageUrl 컬럼 존재)
+      responses:
+        '200':
+          description: 조회 성공
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/UserMeResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    patch:
+      tags:
+        - User & Onboarding
+      summary: 내 정보 수정 (설정) | 텐텐
+      description: |
+        [확인 필요]
+        - Figma 설정 화면에서 timezone을 수정하는 UI를 이번 분석 범위에서 확인하지 못했습니다.
+          온보딩에서만 설정하고 이후 변경 불가인지 확인 필요.
+        - 홈 통화 변경 시 기존 지출 재계산 여부는 프론트 확인 팝업 후 요청(기존 문서 메모 유지).
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nickname:
+                  type: string
+                  nullable: true
+                homeCurrency:
+                  type: string
+                  nullable: true
+                localCurrencies:
+                  type: array
+                  nullable: true
+                  items:
+                    type: string
+                timezone:
+                  type: string
+                  nullable: true
+                  description: '[확인 필요] 설정 화면에서 실제로 수정 가능한지 미확인'
+      responses:
+        '200':
+          description: 수정 성공
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/UserMeResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /onboarding/complete:
+    post:
+      tags:
+        - User & Onboarding
+      summary: 온보딩 완료 (통화·예산·메인 지갑 일괄 저장) | 텐텐
+      description: |
+        [추가 필요]
+        - Figma "프로필 설정" 화면에는 "내가 가장 관리하고 싶은 목표는 무엇인가요? (복수 선택 가능)"
+          라는 질문과 "여행/취미", "저축", "학업비" 선택지가 있습니다. 기존 요청 필드에는
+          이 목표(goal) 값을 저장할 필드가 없습니다.
+        - 프로필 이미지 업로드 UI("이미지 업로드" 버튼)가 프로필 설정 화면에 있으나 요청 필드에 없음.
+
+        [확인 필요]
+        - monthlyBudgetHome, mainWalletInitialBalance를 입력받는 화면을 이번 Figma 분석 범위에서
+          명확히 특정하지 못했습니다. 별도 스텝인지, 다른 값으로 대체되었는지 확인 필요.
+        - 서비스 약관 동의 날짜를 정확히 기록해야 한다는 담당자 메모(P0 v3 문서 내)가 있어
+          TermsAgreement.agreedAt 저장 시점을 온보딩 완료 시점과 맞출지 별도 스텝(회원가입 시)으로
+          할지 확인 필요.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - nickname
+                - homeCurrency
+                - localCurrencies
+                - timezone
+              properties:
+                nickname:
+                  type: string
+                homeCurrency:
+                  type: string
+                localCurrencies:
+                  type: array
+                  items:
+                    type: string
+                timezone:
+                  type: string
+                monthlyBudgetHome:
+                  type: number
+                  nullable: true
+                  description: '[확인 필요] 입력 화면 미특정'
+                mainWalletInitialBalance:
+                  type: number
+                  nullable: true
+                  description: '[확인 필요] 입력 화면 미특정'
+                goals:
+                  type: array
+                  nullable: true
+                  description: '[추가 필요] Figma 프로필 설정 화면의 목표(복수 선택) 값'
+                  items:
+                    type: string
+                    example: TRAVEL_HOBBY
+                profileImageUrl:
+                  type: string
+                  nullable: true
+                  description: '[추가 필요] Figma 프로필 이미지 업로드 UI에 대응하는 필드'
+      responses:
+        '200':
+          description: 온보딩 완료
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          mainWalletId:
+                            type: integer
+                            format: int64
+                          budgetId:
+                            type: integer
+                            format: int64
+                          isOnboardingCompleted:
+                            type: boolean
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /currencies:
+    get:
+      tags:
+        - Reference & Budget
+      summary: 지원 통화 목록 조회 | 텐텐
+      description: |
+        [확인 필요]
+        - Figma 환율 계산기 화면에는 GBP(£)도 등장합니다. 기존 문서 예시에는 5개 통화만
+          언급되어 있어, 지원 통화 목록에 GBP를 포함해야 하는지 확인이 필요합니다.
+      responses:
+        '200':
+          description: 조회 성공
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/CurrencyResponse'
+  /categories:
+    get:
+      tags:
+        - Reference & Budget
+      summary: 기본 지출 카테고리 목록 조회 | 소온
+      responses:
+        '200':
+          description: 조회 성공
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/CategoryResponse'
+  /budgets/{yearMonth}:
+    get:
+      tags:
+        - Reference & Budget
+      summary: 월 예산 조회 | 소온
+      parameters:
+        - name: yearMonth
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 2026-07
+      responses:
+        '200':
+          description: 조회 성공
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/BudgetResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags:
+        - Reference & Budget
+      summary: 월 예산 생성·수정 (upsert) | 소온
+      description: |
+        [확인 필요]
+        - 온보딩 단계 외에 예산을 수정하는 화면을 이번 Figma 분석 범위에서 명확히 확인하지
+          못했습니다. 설정 화면 또는 별도 화면 존재 여부 확인 필요.
+      parameters:
+        - name: yearMonth
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 2026-07
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - monthlyLimitHome
+              properties:
+                monthlyLimitHome:
+                  type: number
+      responses:
+        '200':
+          description: 저장 성공
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/BudgetResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /main-wallet:
+    get:
+      tags:
+        - Wallet & Pot
+      summary: 메인 지갑 잔액 조회 | 텐텐
+      responses:
+        '200':
+          description: 조회 성공
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/MainWalletResponse'
+  /main-wallet/transactions:
+    post:
+      tags:
+        - Wallet & Pot
+      summary: 메인 지갑 입금·수동 잔액 조정 | 텐텐
+      description: |
+        [변경 필요]
+        - 기존 문서에는 type 값으로 DEPOSIT, MANUAL_SET만 언급되어 있으나, 실제 코드의
+          MainWalletTransactionType enum에는 TRANSFER_OUT 값이 이미 정의되어 있습니다.
+          지갑 간 이체(WalletTransfer 엔티티도 이미 존재) 기능과 연동되는 것으로 보이나,
+          기존 문서는 지갑 이체 API 자체를 "지갑 세부 기능 제외"로 스코프아웃했습니다.
+          enum 값과 스코프를 맞출지 확인이 필요합니다.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - type
+                - amount
+              properties:
+                type:
+                  $ref: '#/components/schemas/MainWalletTransactionType'
+                amount:
+                  type: number
+                memo:
+                  type: string
+                  nullable: true
+      responses:
+        '200':
+          description: 처리 성공
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          mainWalletTransactionId:
+                            type: integer
+                            format: int64
+                          currentBalance:
+                            type: number
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /sub-wallets:
+    get:
+      tags:
+        - Wallet & Pot
+      summary: 서브 지갑(Pot) 목록 조회 | 텐텐
+      description: |
+        [변경 필요]
+        - Figma "Pots" 화면은 각 Pot마다 목표 금액, 현재 모인 금액, 진행률(%), 대표 이미지/아이콘을
+          카드 형태로 보여줍니다. 기존 응답 필드(subWalletId, walletType, name, currency,
+          currentBalance, isLocked)에는 목표 저축 관련 필드가 전혀 없습니다.
+        - Figma 화면 상단에는 "Pots에 배정된 금액", "사용 가능 금액" 같은 집계 값도 표시되므로
+          목록 API 응답에 요약(summary) 블록 추가가 필요합니다.
+
+        [추가 필요]
+        - targetAmount(목표 금액), currentSavedAmount 또는 progressPercent, iconKey/imageUrl
+      responses:
+        '200':
+          description: 조회 성공
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          summary:
+                            type: object
+                            description: '[추가 필요] Figma Pots 화면 상단 요약 영역'
+                            properties:
+                              monthlyBudgetHome:
+                                type: number
+                              potsAllocatedAmountHome:
+                                type: number
+                              availableAmountHome:
+                                type: number
+                          subWallets:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/SubWalletResponse'
+    post:
+      tags:
+        - Wallet & Pot
+      summary: 서브 지갑(Pot) 생성 | 텐텐
+      description: |
+        [변경 필요]
+        - Figma "Pots_새로 만들기" 화면 필드: "Pots 이름", "목표 금액", "대표 카테고리",
+          "대표 이미지"(이모티콘 선택 또는 직접 업로드) — 기존 요청 필드(walletType, name,
+          currency, currentBalance, categoryId, isLocked)와 다릅니다. currency 입력 UI는
+          이 화면에서 확인되지 않았습니다.
+
+        [확인 필요]
+        - Pot 생성 시 currency를 사용자가 직접 지정하는지, 홈 통화로 고정되는지
+        - "직접 업로드" 이미지의 저장 방식(별도 파일 업로드 API 필요 여부)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - walletType
+                - name
+                - currentBalance
+                - isLocked
+              properties:
+                walletType:
+                  $ref: '#/components/schemas/WalletType'
+                name:
+                  type: string
+                currency:
+                  type: string
+                  nullable: true
+                  description: '[확인 필요] Pot 생성 화면에 통화 선택 UI 미확인'
+                currentBalance:
+                  type: number
+                categoryId:
+                  type: integer
+                  format: int64
+                  nullable: true
+                isLocked:
+                  type: boolean
+                targetAmount:
+                  type: number
+                  nullable: true
+                  description: '[추가 필요] Figma Pots_새로 만들기 화면의 목표 금액'
+                iconKey:
+                  type: string
+                  nullable: true
+                  description: '[추가 필요] 대표 이미지/이모티콘 선택값'
+      responses:
+        '200':
+          description: 생성 성공
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/SubWalletResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /sub-wallets/{subWalletId}:
+    get:
+      tags:
+        - Wallet & Pot
+      summary: 서브 지갑(Pot) 상세 조회 | 텐텐
+      description: |
+        [변경 필요] 목록 API와 동일하게 targetAmount 등 필드 확장 필요.
+      parameters:
+        - name: subWalletId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: 조회 성공
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/SubWalletResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      tags:
+        - Wallet & Pot
+      summary: 서브 지갑(Pot) 수정 | 텐텐
+      description: |
+        [변경 필요] POST /sub-wallets 와 동일한 필드 확장 필요.
+      parameters:
+        - name: subWalletId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  nullable: true
+                categoryId:
+                  type: integer
+                  format: int64
+                  nullable: true
+                targetAmount:
+                  type: number
+                  nullable: true
+                  description: '[추가 필요]'
+                iconKey:
+                  type: string
+                  nullable: true
+                  description: '[추가 필요]'
+      responses:
+        '200':
+          description: 수정 성공
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/SubWalletResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /sub-wallets/{subWalletId}/deposits:
+    post:
+      tags:
+        - Wallet & Pot
+      summary: Pot 목표 금액 추가 납입 | 텐텐
+      description: |
+        [확인 필요]
+        - 메인 지갑에서 차감 후 Pot으로 이체하는 구조인지(WalletTransfer 엔티티 활용),
+          아니면 Pot 잔액만 단순 증가시키는 구조인지
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - amount
+              properties:
+                amount:
+                  type: number
+      parameters:
+        - name: subWalletId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: '[확인 필요] 응답 형식 미확정'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /exchange-rates/current:
+    get:
+      tags:
+        - Exchange Rate
+      summary: 현재 대표 환율 조회 (홈 위젯) | 소온
+      description: |
+        [확인 필요] (기존 문서에 이미 명시된 회의 확인 필요 사항)
+        - 스케줄러 3회 시각 고정 확정 여부
+        - exchangerate.host 병행이 필요한 통화 확정
+      parameters:
+        - name: from
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: to
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 조회 성공
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/CurrentExchangeRateResponse'
+  /exchange-rates/quote:
+    get:
+      tags:
+        - Exchange Rate
+      summary: 환율 계산기 (금액 환산 + 날짜별 조회) | 소온
+      description: |
+        [확인 필요]
+        - Figma 계산기 화면에서 subWalletId(고정 환율 지갑) 또는 manualRate(직접 입력 환율)를
+          입력하는 UI를 이번 분석 범위에서 확인하지 못했습니다. 단순 From/To/금액 계산기로
+          단순화된 것인지, 다른 화면에 해당 입력이 있는지 확인이 필요합니다.
+        - 해당 날짜 환율이 DB에 없을 때 "프론트에 직접 입력 요청"하는 기존 정책이 Figma
+          화면에서도 동일하게 노출되는지 확인 필요.
+      parameters:
+        - name: from
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: to
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: amount
+          in: query
+          required: true
+          schema:
+            type: number
+        - name: date
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: subWalletId
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int64
+          description: '[확인 필요] 계산기 화면에서 입력 UI 미확인'
+        - name: manualRate
+          in: query
+          required: false
+          schema:
+            type: number
+          description: '[확인 필요] 계산기 화면에서 입력 UI 미확인'
+      responses:
+        '200':
+          description: 조회 성공
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ExchangeQuoteResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /expenses:
+    post:
+      tags:
+        - Expense
+      summary: 지출 등록 | 소온
+      description: |
+        [확인 필요]
+        - Figma 화면에서 rateMode(AUTO/MANUAL), manualRate를 직접 입력하는 UI를 이번 분석
+          범위에서 확인하지 못했습니다. "적용 환율" 텍스트는 자동 계산된 값을 보여주는 미리보기로
+          보이며, 수동 환율 입력 여부는 확인이 필요합니다.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - subWalletId
+                - categoryId
+                - originalAmount
+                - originalCurrency
+                - spentAt
+                - rateMode
+              properties:
+                subWalletId:
+                  type: integer
+                  format: int64
+                categoryId:
+                  type: integer
+                  format: int64
+                originalAmount:
+                  type: number
+                originalCurrency:
+                  type: string
+                spentAt:
+                  type: string
+                  format: date-time
+                merchantName:
+                  type: string
+                  nullable: true
+                memo:
+                  type: string
+                  nullable: true
+                  maxLength: 200
+                rateMode:
+                  $ref: '#/components/schemas/ExpenseRateMode'
+                manualRate:
+                  type: number
+                  nullable: true
+      responses:
+        '200':
+          description: 등록 성공
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          expenseId:
+                            type: integer
+                            format: int64
+                          appliedRate:
+                            type: number
+                          rateSource:
+                            type: string
+                          convertedAmountHome:
+                            type: number
+                          subWalletBalance:
+                            type: number
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          description: 잠금 지갑에는 지출을 등록할 수 없음
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+    get:
+      tags:
+        - Expense
+      summary: 지출 목록 조회 (필터) | 소온
+      description: |
+        [확인 필요]
+        - subWalletId, categoryId 필터 UI를 이번 분석 범위에서 명확히 확인하지 못했습니다.
+          월(yearMonth) 필터만 우선 노출되는지 확인 필요.
+        - 기본 정렬 기준(최신순 등)
+      parameters:
+        - name: yearMonth
+          in: query
+          required: false
+          schema:
+            type: string
+            example: 2026-07
+        - name: subWalletId
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int64
+        - name: categoryId
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int64
+        - name: from
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: 조회 성공
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/PageResponse'
+                          - type: object
+                            properties:
+                              content:
+                                type: array
+                                items:
+                                  $ref: '#/components/schemas/ExpenseSummaryResponse'
+  /expenses/{expenseId}:
+    get:
+      tags:
+        - Expense
+      summary: 지출 상세 조회 | 소온
+      parameters:
+        - name: expenseId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: 조회 성공
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ExpenseDetailResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      tags:
+        - Expense
+      summary: 지출 수정 | 소온
+      parameters:
+        - name: expenseId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                subWalletId:
+                  type: integer
+                  format: int64
+                  nullable: true
+                categoryId:
+                  type: integer
+                  format: int64
+                  nullable: true
+                originalAmount:
+                  type: number
+                  nullable: true
+                originalCurrency:
+                  type: string
+                  nullable: true
+                spentAt:
+                  type: string
+                  format: date-time
+                  nullable: true
+                merchantName:
+                  type: string
+                  nullable: true
+                memo:
+                  type: string
+                  nullable: true
+                rateUpdateMode:
+                  $ref: '#/components/schemas/RateUpdateMode'
+      responses:
+        '200':
+          description: 수정 성공
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          expenseId:
+                            type: integer
+                            format: int64
+                          appliedRate:
+                            type: number
+                          convertedAmountHome:
+                            type: number
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags:
+        - Expense
+      summary: 지출 삭제 | 소온
+      parameters:
+        - name: expenseId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: 삭제 성공
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          subWalletBalance:
+                            type: number
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /expenses/imports:
+    post:
+      tags:
+        - Expense
+      summary: 명세서 파일 업로드 기반 지출 일괄 인식 | 도로시
+      description: |
+        [확인 필요]
+        - PDF/CSV 파싱 방식(OCR인지 정형 CSV 파싱인지 문구상 혼재되어 있음)
+        - 인식 결과를 바로 저장할지, 사용자 확인(미리보기) 후 저장할지
+        - 데모 수준 구현 범위(담당자 메모 기준)
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: '[확인 필요] 인식 결과 응답 형식 미확정'
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        description: '[확인 필요] 인식된 지출 후보 목록 형식'
+                        items:
+                          type: object
+  /merchant-category-preferences/suggest:
+    get:
+      tags:
+        - Expense
+      summary: 가맹점 카테고리 추천 | 소온
+      description: |
+        [확인 필요]
+        - 이번 Figma 분석 범위(node-id 748:547)에서 이 추천 기능이 화면에 노출되는지
+          명확히 확인하지 못했습니다. 지출입력 화면의 상점 입력 시 자동 추천이 적용되는지 확인 필요.
+      parameters:
+        - name: merchantName
+          in: query
+          required: true
+          schema:
+            type: string
+            example: Tesco
+      responses:
+        '200':
+          description: 조회 성공
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          merchantName:
+                            type: string
+                          suggestedCategory:
+                            type: object
+                            properties:
+                              categoryId:
+                                type: integer
+                                format: int64
+                              name:
+                                type: string
+  /dashboard:
+    get:
+      tags:
+        - Dashboard & Report
+      summary: 홈 대시보드 조회 | 텐텐
+      description: |
+        [추가 필요]
+        - Figma 홈/Pots 화면에는 "Pots에 배정된 금액", "사용 가능 금액" 같은 Pot 집계 정보도
+          함께 노출됩니다. 기존 응답에는 Pot 관련 집계 필드가 없어 추가가 필요합니다.
+        - 홈 화면 상단의 캐릭터 문구("오늘도 목표를 향해 한 걸음!" 등)는 기존 문서에서도
+          "캐릭터 말하기 기능은 API 없음 — 백엔드로 내려줄지 프론트 정적 배열로 둘지 결정 필요"로
+          이미 확인 필요 사항으로 남아 있습니다. 아래 characterMessage 필드는 초안입니다.
+      parameters:
+        - name: yearMonth
+          in: query
+          required: false
+          schema:
+            type: string
+            example: 2026-07
+      responses:
+        '200':
+          description: 조회 성공
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/DashboardResponse'
+  /reports/monthly:
+    get:
+      tags:
+        - Dashboard & Report
+      summary: 월별 리포트 조회 | 소온
+      description: |
+        [변경 필요]
+        - Figma "리포트" 화면은 기존 문서보다 훨씬 풍부합니다: 월별 지출 막대 그래프, 최근
+          N일 지출 라인 그래프("오늘 지출이 어제보다 5% 증가했어요" 같은 전일 대비 증감 문구),
+          카테고리별 지출 비중, "리포트 미리보기" 모달, "이메일로 리포트 보내기" 버튼.
+          기존 응답(yearMonth, homeCurrency, totalExpenseHome, dailyExpenses)만으로는
+          이 화면을 구성할 수 없어 필드 확장이 필요합니다.
+
+        [확인 필요]
+        - MVP 포함 여부 최종 확정 (기존 문서 자체의 미확정 사항)
+        - GET /reports/categories 와 화면/데이터가 상당 부분 겹쳐 보여 두 API를 통합할지 확인 필요
+      parameters:
+        - name: yearMonth
+          in: query
+          required: true
+          schema:
+            type: string
+            example: 2026-07
+      responses:
+        '200':
+          description: 조회 성공
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/MonthlyReportResponse'
+  /reports/monthly/email:
+    post:
+      tags:
+        - Dashboard & Report
+      summary: 리포트 이메일 발송 신청/설정 | 소온
+      description: |
+        [확인 필요]
+        - 설정 화면 문구는 "매일"이지만 기존 리포트 API는 "월별(monthly)"입니다. 실제 발송
+          주기(일간/월간)를 확정해야 합니다.
+        - "설정에서의 토글(구독 on/off)"과 "리포트 화면의 즉시 발송 버튼"이 같은 기능인지,
+          별도 기능인지 확인 필요.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              description: '[확인 필요] 발송 주기 미확정으로 필드 미확정'
+      responses:
+        '200':
+          description: '[확인 필요]'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /reports/categories:
+    get:
+      tags:
+        - Dashboard & Report
+      summary: 카테고리별 리포트 조회 | 소온
+      description: |
+        [확인 필요]
+        - Figma "리포트" 화면에서 카테고리별 비중이 /reports/monthly 응답과 함께 한 화면에
+          표시되는 것으로 보여, 이 API가 별도로 필요한지 /reports/monthly로 흡수할지 확인 필요.
+      parameters:
+        - name: yearMonth
+          in: query
+          required: true
+          schema:
+            type: string
+            example: 2026-07
+      responses:
+        '200':
+          description: 조회 성공
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/CategoryReportResponse'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    BrowserLanguageHeader:
+      name: X-Browser-Language
+      in: header
+      required: false
+      description: |
+        사용자의 브라우저 언어 정보입니다.
+
+        프론트엔드는 브라우저의 navigator.language 값을 전달합니다.
+        값이 없거나 지원하지 않는 값인 경우 서버는 ko-KR을 기본값으로 사용합니다.
+
+        [확인 필요] 지원 가능한 브라우저 언어 코드 목록이 기획/코드 어디에도 확정되어 있지
+        않습니다. 예시로 ko-KR, en-US, ja-JP를 기재했으나 최종 지원 목록 확정이 필요합니다.
+        서버는 SwaggerConfig의 GlobalOpenApiCustomizer를 통해 이 파라미터를 모든 API 경로에
+        자동으로 노출합니다. 실제 언어별 처리(다국어 메시지 소스 등)는 아직 코드에 구현되어
+        있지 않습니다.
+      schema:
+        type: string
+        example: ko-KR
+        default: ko-KR
+  responses:
+    BadRequest:
+      description: 잘못된 요청 (INVALID_REQUEST/VALIDATION_FAILED)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiResponse'
+    Unauthorized:
+      description: 인증 필요 또는 토큰 만료 (UNAUTHORIZED)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiResponse'
+    Forbidden:
+      description: 권한 없음 / 잠금 지갑 접근 (FORBIDDEN)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiResponse'
+    NotFound:
+      description: 리소스를 찾을 수 없음 (RESOURCE_NOT_FOUND)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiResponse'
+    Conflict:
+      description: 중복된 리소스 (DUPLICATE_RESOURCE)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiResponse'
+    InsufficientBalance:
+      description: 지갑 잔액 부족 (INSUFFICIENT_BALANCE)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiResponse'
+  schemas:
+    ApiResponse:
+      type: object
+      description: |
+        공통 응답 포맷 (com.uniconvert.backend.global.response.ApiResponse 와 동일 구조).
+        data는 성공 시 각 API 응답 데이터로 대체되며, 실패 시 null입니다.
+      properties:
+        success:
+          type: boolean
+        code:
+          type: string
+          example: SUCCESS
+        message:
+          type: string
+          example: 요청이 성공했습니다.
+        data:
+          type: object
+          nullable: true
+    PageResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items: {}
+        page:
+          type: integer
+        size:
+          type: integer
+        hasNext:
+          type: boolean
+    TermsType:
+      type: string
+      description: com.uniconvert.backend.domain.auth.enums.TermsType
+      enum:
+        - SERVICE
+        - PRIVACY
+        - MARKETING
+    AuthProvider:
+      type: string
+      description: com.uniconvert.backend.domain.auth.enums.AuthProvider
+      enum:
+        - GOOGLE
+        - APPLE
+    WalletType:
+      type: string
+      description: com.uniconvert.backend.domain.wallet.enums.WalletType
+      enum:
+        - BANK_ACCOUNT
+        - CASH
+        - POT
+    MainWalletTransactionType:
+      type: string
+      description: |
+        com.uniconvert.backend.domain.wallet.enums.MainWalletTransactionType
+        [변경 필요] TRANSFER_OUT은 기존 API 설계 문서에는 언급되지 않은 값입니다.
+      enum:
+        - DEPOSIT
+        - MANUAL_SET
+        - TRANSFER_OUT
+    ExpenseRateMode:
+      type: string
+      description: com.uniconvert.backend.domain.expense.enums.ExpenseRateMode
+      enum:
+        - DAILY_AVERAGE
+        - MANUAL
+    RateUpdateMode:
+      type: string
+      description: com.uniconvert.backend.domain.expense.enums.RateUpdateMode (기존 문서의 AUTO/MANUAL과 이름이 다름)
+      enum:
+        - KEEP
+        - RECALCULATE
+    DailyRateStatus:
+      type: string
+      description: com.uniconvert.backend.domain.exchange.enums.DailyRateStatus
+      enum:
+        - PRELIMINARY
+        - FINAL
+    UserMeResponse:
+      type: object
+      properties:
+        userId:
+          type: integer
+          format: int64
+        nickname:
+          type: string
+          nullable: true
+        email:
+          type: string
+          description: '[변경 필요] 기존 문서 응답에는 없었으나 Figma 설정 화면에 노출됨'
+        imageUrl:
+          type: string
+          nullable: true
+          description: '[변경 필요] 기존 문서 응답에는 없었으나 Figma 프로필 이미지 업로드 UI 존재'
+        homeCurrency:
+          type: string
+        localCurrencyCode:
+          type: string
+          nullable: true
+        timezone:
+          type: string
+        isOnboardingCompleted:
+          type: boolean
+    CurrencyResponse:
+      type: object
+      properties:
+        code:
+          type: string
+          description: ISO 4217 3자리
+        nameKo:
+          type: string
+        nameEn:
+          type: string
+        symbol:
+          type: string
+        isSupported:
+          type: boolean
+    CategoryResponse:
+      type: object
+      properties:
+        categoryId:
+          type: integer
+          format: int64
+        name:
+          type: string
+        iconKey:
+          type: string
+          nullable: true
+        sortOrder:
+          type: integer
+    BudgetResponse:
+      type: object
+      properties:
+        budgetId:
+          type: integer
+          format: int64
+        yearMonth:
+          type: string
+        monthlyLimitHome:
+          type: number
+    MainWalletResponse:
+      type: object
+      properties:
+        mainWalletId:
+          type: integer
+          format: int64
+        currency:
+          type: string
+        currentBalance:
+          type: number
+        updatedAt:
+          type: string
+          format: date-time
+    SubWalletResponse:
+      type: object
+      properties:
+        subWalletId:
+          type: integer
+          format: int64
+        walletType:
+          $ref: '#/components/schemas/WalletType'
+        name:
+          type: string
+        currency:
+          type: string
+        currentBalance:
+          type: number
+        isLocked:
+          type: boolean
+        targetAmount:
+          type: number
+          nullable: true
+          description: '[추가 필요] Figma Pots 화면 목표 금액'
+        progressPercent:
+          type: number
+          nullable: true
+          description: '[추가 필요] 목표 대비 현재 저축 진행률'
+        iconKey:
+          type: string
+          nullable: true
+          description: '[추가 필요] Pots 대표 이미지/이모티콘'
+    CurrentExchangeRateResponse:
+      type: object
+      properties:
+        fromCurrency:
+          type: string
+        toCurrency:
+          type: string
+        averageRate:
+          type: number
+        rateDate:
+          type: string
+          format: date
+        sampleCount:
+          type: integer
+        status:
+          $ref: '#/components/schemas/DailyRateStatus'
+    ExchangeQuoteResponse:
+      type: object
+      properties:
+        amount:
+          type: number
+        appliedRate:
+          type: number
+        convertedAmount:
+          type: number
+        rateDate:
+          type: string
+          format: date
+        rateSource:
+          type: string
+          example: DAILY_AVERAGE
+    ExpenseSummaryResponse:
+      type: object
+      properties:
+        expenseId:
+          type: integer
+          format: int64
+        subWalletId:
+          type: integer
+          format: int64
+        categoryId:
+          type: integer
+          format: int64
+        merchantName:
+          type: string
+          nullable: true
+        originalAmount:
+          type: number
+        originalCurrency:
+          type: string
+        convertedAmountHome:
+          type: number
+        spentAt:
+          type: string
+          format: date-time
+    ExpenseDetailResponse:
+      type: object
+      properties:
+        expenseId:
+          type: integer
+          format: int64
+        subWalletId:
+          type: integer
+          format: int64
+        categoryId:
+          type: integer
+          format: int64
+        originalAmount:
+          type: number
+        appliedRate:
+          type: number
+        convertedAmountHome:
+          type: number
+        spentAt:
+          type: string
+          format: date-time
+    DashboardResponse:
+      type: object
+      properties:
+        homeCurrency:
+          type: string
+        totalAssetHome:
+          type: number
+        lockedAssetHome:
+          type: number
+        availableAmountHome:
+          type: number
+        monthlyBudgetHome:
+          type: number
+        monthlyExpenseHome:
+          type: number
+        budgetUsagePercent:
+          type: number
+        potsAllocatedAmountHome:
+          type: number
+          nullable: true
+          description: '[추가 필요] Figma Pots 요약 영역과 정합성 확보'
+        characterMessage:
+          type: string
+          nullable: true
+          description: '[확인 필요] 캐릭터 문구를 API로 내려줄지 프론트 정적 배열로 둘지 미확정'
+        recentExpenses:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExpenseSummaryResponse'
+    MonthlyReportResponse:
+      type: object
+      properties:
+        yearMonth:
+          type: string
+        homeCurrency:
+          type: string
+        totalExpenseHome:
+          type: number
+        dailyExpenses:
+          type: array
+          items:
+            type: object
+            properties:
+              date:
+                type: string
+                format: date
+              amountHome:
+                type: number
+        comparedToYesterdayPercent:
+          type: number
+          nullable: true
+          description: '[추가 필요] Figma 리포트 화면의 전일 대비 증감률 문구'
+        categoryBreakdown:
+          type: array
+          nullable: true
+          description: '[확인 필요] /reports/categories 와 중복 여부 확인 필요'
+          items:
+            type: object
+            properties:
+              categoryId:
+                type: integer
+                format: int64
+              name:
+                type: string
+              amountHome:
+                type: number
+              percent:
+                type: number
+    CategoryReportResponse:
+      type: object
+      properties:
+        yearMonth:
+          type: string
+        totalExpenseHome:
+          type: number
+        categories:
+          type: array
+          items:
+            type: object
+            properties:
+              categoryId:
+                type: integer
+                format: int64
+              name:
+                type: string
+              amountHome:
+                type: number
+              percent:
+                type: number
