@@ -36,5 +36,8 @@ out/
 ### VS Code ###
 .vscode/
 
-### Env ###
+### Local env ###
+#ECOS open API 아래 저장
+application-local.yml
+application.yml
 .env

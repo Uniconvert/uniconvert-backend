@@ -83,6 +83,7 @@ public class SecurityConfig {
         return provider;
     }
 
+
     private void writeErrorResponse(HttpServletResponse response, int status, ErrorCode errorCode) throws IOException {
         response.setStatus(status);
         response.setContentType("application/json;charset=UTF-8");
@@ -90,5 +91,6 @@ public class SecurityConfig {
                 response.getWriter(),
                 ApiResponse.failure(errorCode.getCode(), errorCode.getMessage())
         );
+
     }
 }
