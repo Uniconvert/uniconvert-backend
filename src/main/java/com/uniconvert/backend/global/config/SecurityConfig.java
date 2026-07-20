@@ -39,12 +39,13 @@ public class SecurityConfig {
                 .authenticationProvider(daoAuthenticationProvider())
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(
-                                "/api/v1/health",
+                                "/health",
                                 "/swagger",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
+                                "/docs/**",
                                 "/error",
-                                "/api/v1/auth/**"
+                                "/auth/**"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )

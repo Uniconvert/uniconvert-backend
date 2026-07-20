@@ -5,7 +5,7 @@
 # 수정은 반드시 docs/openapi/(paths/*.yaml, components/*.yaml)에서 하고,
 # 아래 명령으로 다시 생성하세요.
 #
-#   npx -y @redocly/cli bundle docs/openapi/openapi.yaml -o docs/openapi.yaml
+#   npx -y @redocly/cli bundle docs/openapi/openapi.yaml -o src/main/resources/static/docs/openapi.yaml
 #
 # ============================================================================
 
@@ -18,7 +18,7 @@ info:
   contact:
     name: Uniconvert
 servers:
-  - url: /api/v1
+  - url: /
 security:
   - bearerAuth: []
 tags:
