@@ -30,8 +30,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String requestUri = request.getRequestURI();
         String servletPath = request.getServletPath();
 
-        if (requestUri.equals("/api/v1/health")
-                || requestUri.equals("/health")
+        if (requestUri.equals("/health")
                 || servletPath.equals("/health")) {
             filterChain.doFilter(request, response);
             return;

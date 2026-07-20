@@ -53,4 +53,16 @@ public class RefreshToken {
         this.revokedAt = revokedAt;
         this.user = user;
     }
+    public void revoke() {
+        this.revokedAt = LocalDateTime.now();
+    }
+
+    public boolean isRevoked() {
+        return this.revokedAt != null;
+    }
+
+    public boolean isExpired() {
+        return this.expiresAt.isBefore(LocalDateTime.now());
+    }
 }
+
