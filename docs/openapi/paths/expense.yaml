@@ -1,6 +1,6 @@
-# Expense — path definitions (split out of docs/openapi.yaml for lower merge-conflict risk)
-# Edit here, then regenerate docs/openapi.yaml via:
-#   npx -y @redocly/cli bundle docs/openapi/openapi.yaml -o docs/openapi.yaml
+# Expense — path definitions (split out of the bundled openapi.yaml for lower merge-conflict risk)
+# Edit here, then regenerate src/main/resources/static/docs/openapi.yaml via:
+#   npx -y @redocly/cli bundle docs/openapi/openapi.yaml -o src/main/resources/static/docs/openapi.yaml
 
 expenses:
   post:

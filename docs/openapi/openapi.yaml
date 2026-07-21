@@ -21,11 +21,12 @@ openapi: 3.0.3
 #       ├── responses.yaml
 #       └── schemas.yaml
 #
-# 실제로 보거나 배포할 때 쓰는 단일 파일은 docs/openapi.yaml (한 단계 위)이며,
-# 아래 명령으로 이 디렉터리에서 번들링해서 생성합니다. docs/openapi.yaml을
-# 직접 수정하지 말고, 반드시 이 디렉터리의 파일을 수정한 뒤 재생성하세요.
+# 실제로 보거나 배포할 때 쓰는 단일 파일은 src/main/resources/static/docs/openapi.yaml
+# 이며(Swagger 문서 병합에 사용되도록 static 리소스로 포함), 아래 명령으로 이 디렉터리에서
+# 번들링해서 생성합니다. 번들 파일을 직접 수정하지 말고, 반드시 이 디렉터리의 파일을
+# 수정한 뒤 재생성하세요.
 #
-#   npx -y @redocly/cli bundle docs/openapi/openapi.yaml -o docs/openapi.yaml
+#   npx -y @redocly/cli bundle docs/openapi/openapi.yaml -o src/main/resources/static/docs/openapi.yaml
 #
 # ============================================================================
 
@@ -38,7 +39,7 @@ info:
     name: Uniconvert
 
 servers:
-  - url: /api/v1
+  - url: /
 
 tags:
   - name: Auth
