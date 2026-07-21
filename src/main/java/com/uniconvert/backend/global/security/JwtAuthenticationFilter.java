@@ -27,34 +27,39 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
+
         String requestUri = request.getRequestURI();
         String servletPath = request.getServletPath();
 
         if (requestUri.equals("/health")
                 || servletPath.equals("/health")) {
-            filterChain.doFilter(request, response);
-            return;
-        }
 
-        String authorizationHeader = request.getHeader(AUTHORIZATION_HEADER);
+            if (request.getRequestURI().equals("/health")) {
 
-        if (authorizationHeader != null && authorizationHeader.startsWith(BEARER_PREFIX)) {
-            String token = authorizationHeader.substring(BEARER_PREFIX.length());
-            if (jwtTokenProvider.validateToken(token)) {
-                Long userId = jwtTokenProvider.getUserId(token);
-                CustomUserDetails userDetails = new CustomUserDetails(userId, null);
-                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                        userDetails,
-                        null,
-                        userDetails.getAuthorities()
-                );
-                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authentication);
-            } else {
-                SecurityContextHolder.clearContext();
+                filterChain.doFilter(request, response);
+                return;
             }
-        }
 
-        filterChain.doFilter(request, response);
+            String authorizationHeader = request.getHeader(AUTHORIZATION_HEADER);
+
+            if (authorizationHeader != null && authorizationHeader.startsWith(BEARER_PREFIX)) {
+                String token = authorizationHeader.substring(BEARER_PREFIX.length());
+                if (jwtTokenProvider.validateToken(token)) {
+                    Long userId = jwtTokenProvider.getUserId(token);
+                    CustomUserDetails userDetails = new CustomUserDetails(userId, null);
+                    UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                            userDetails,
+                            null,
+                            userDetails.getAuthorities()
+                    );
+                    authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                } else {
+                    SecurityContextHolder.clearContext();
+                }
+            }
+
+            filterChain.doFilter(request, response);
+        }
     }
-}
+    }

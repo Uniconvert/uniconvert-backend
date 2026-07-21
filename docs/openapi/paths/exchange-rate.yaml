@@ -1,0 +1,97 @@
+# Exchange Rate — path definitions (split out of the bundled openapi.yaml for lower merge-conflict risk)
+# Edit here, then regenerate src/main/resources/static/docs/openapi.yaml via:
+#   npx -y @redocly/cli bundle docs/openapi/openapi.yaml -o src/main/resources/static/docs/openapi.yaml
+
+current:
+  get:
+    tags: [Exchange Rate]
+    summary: 현재 대표 환율 조회 (홈 위젯) | 소온
+    description: |
+      [확인 필요] (기존 문서에 이미 명시된 회의 확인 필요 사항)
+      - 스케줄러 3회 시각 고정 확정 여부
+      - exchangerate.host 병행이 필요한 통화 확정
+    parameters:
+      - name: from
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: to
+        in: query
+        required: true
+        schema:
+          type: string
+    responses:
+      '200':
+        description: 조회 성공
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '../components/schemas.yaml#/ApiResponse'
+                - type: object
+                  properties:
+                    data:
+                      $ref: '../components/schemas.yaml#/CurrentExchangeRateResponse'
+
+quote:
+  get:
+    tags: [Exchange Rate]
+    summary: 환율 계산기 (금액 환산 + 날짜별 조회) | 소온
+    description: |
+      [확인 필요]
+      - Figma 계산기 화면에서 subWalletId(고정 환율 지갑) 또는 manualRate(직접 입력 환율)를
+        입력하는 UI를 이번 분석 범위에서 확인하지 못했습니다. 단순 From/To/금액 계산기로
+        단순화된 것인지, 다른 화면에 해당 입력이 있는지 확인이 필요합니다.
+      - 해당 날짜 환율이 DB에 없을 때 "프론트에 직접 입력 요청"하는 기존 정책이 Figma
+        화면에서도 동일하게 노출되는지 확인 필요.
+    parameters:
+      - name: from
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: to
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: amount
+        in: query
+        required: true
+        schema:
+          type: number
+      - name: date
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date
+      - name: subWalletId
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int64
+        description: "[확인 필요] 계산기 화면에서 입력 UI 미확인"
+      - name: manualRate
+        in: query
+        required: false
+        schema:
+          type: number
+        description: "[확인 필요] 계산기 화면에서 입력 UI 미확인"
+    responses:
+      '200':
+        description: 조회 성공
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '../components/schemas.yaml#/ApiResponse'
+                - type: object
+                  properties:
+                    data:
+                      $ref: '../components/schemas.yaml#/ExchangeQuoteResponse'
+      '400':
+        $ref: '../components/responses.yaml#/BadRequest'
+

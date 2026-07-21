@@ -1,0 +1,39 @@
+# Shared OpenAPI responses
+
+BadRequest:
+  description: 잘못된 요청 (INVALID_REQUEST/VALIDATION_FAILED)
+  content:
+    application/json:
+      schema:
+        $ref: './schemas.yaml#/ApiResponse'
+Unauthorized:
+  description: 인증 필요 또는 토큰 만료 (UNAUTHORIZED)
+  content:
+    application/json:
+      schema:
+        $ref: './schemas.yaml#/ApiResponse'
+Forbidden:
+  description: 권한 없음 / 잠금 지갑 접근 (FORBIDDEN)
+  content:
+    application/json:
+      schema:
+        $ref: './schemas.yaml#/ApiResponse'
+NotFound:
+  description: 리소스를 찾을 수 없음 (RESOURCE_NOT_FOUND)
+  content:
+    application/json:
+      schema:
+        $ref: './schemas.yaml#/ApiResponse'
+Conflict:
+  description: 중복된 리소스 (DUPLICATE_RESOURCE)
+  content:
+    application/json:
+      schema:
+        $ref: './schemas.yaml#/ApiResponse'
+InsufficientBalance:
+  description: 지갑 잔액 부족 (INSUFFICIENT_BALANCE)
+  content:
+    application/json:
+      schema:
+        $ref: './schemas.yaml#/ApiResponse'
+
