@@ -24,42 +24,54 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
-            throws ServletException, IOException {
-
+    protected void doFilterInternal(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain filterChain
+    ) throws ServletException, IOException {
 
         String requestUri = request.getRequestURI();
         String servletPath = request.getServletPath();
 
-        if (requestUri.equals("/health")
-                || servletPath.equals("/health")) {
-
-            if (request.getRequestURI().equals("/health")) {
-
-                filterChain.doFilter(request, response);
-                return;
-            }
-
-            String authorizationHeader = request.getHeader(AUTHORIZATION_HEADER);
-
-            if (authorizationHeader != null && authorizationHeader.startsWith(BEARER_PREFIX)) {
-                String token = authorizationHeader.substring(BEARER_PREFIX.length());
-                if (jwtTokenProvider.validateToken(token)) {
-                    Long userId = jwtTokenProvider.getUserId(token);
-                    CustomUserDetails userDetails = new CustomUserDetails(userId, null);
-                    UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                            userDetails,
-                            null,
-                            userDetails.getAuthorities()
-                    );
-                    authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                    SecurityContextHolder.getContext().setAuthentication(authentication);
-                } else {
-                    SecurityContextHolder.clearContext();
-                }
-            }
-
+        if (requestUri.equals("/health") || servletPath.equals("/health")) {
             filterChain.doFilter(request, response);
+            return;
         }
+
+        String authorizationHeader = request.getHeader(AUTHORIZATION_HEADER);
+
+        if (authorizationHeader == null || !authorizationHeader.startsWith(BEARER_PREFIX)) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        String token = authorizationHeader.substring(BEARER_PREFIX.length());
+
+        try {
+            if (jwtTokenProvider.validateToken(token)) {
+                Long userId = jwtTokenProvider.getUserId(token);
+
+                CustomUserDetails userDetails = new CustomUserDetails(userId, null);
+
+                UsernamePasswordAuthenticationToken authentication =
+                        new UsernamePasswordAuthenticationToken(
+                                userDetails,
+                                null,
+                                userDetails.getAuthorities()
+                        );
+
+                authentication.setDetails(
+                        new WebAuthenticationDetailsSource().buildDetails(request)
+                );
+
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+            } else {
+                SecurityContextHolder.clearContext();
+            }
+        } catch (Exception e) {
+            SecurityContextHolder.clearContext();
+        }
+
+        filterChain.doFilter(request, response);
     }
-    }
+}

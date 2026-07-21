@@ -1,5 +1,6 @@
 package com.uniconvert.backend.domain.auth.service;
 
+import com.uniconvert.backend.domain.auth.dto.response.LoginResponse;
 import com.uniconvert.backend.domain.auth.entity.RefreshToken;
 import com.uniconvert.backend.domain.auth.repository.RefreshTokenRepository;
 import com.uniconvert.backend.domain.user.entity.User;
@@ -27,6 +28,20 @@ public class TokenService {
     }
 
     @Transactional
+    public LoginResponse issueLoginResponse(User user) {
+        String accessToken = issueAccessToken(user);
+        String refreshToken = issueRefreshToken(user);
+
+        return new LoginResponse(
+                user.getUserId(),
+                user.getEmail(),
+                user.getNickname(),
+                accessToken,
+                refreshToken
+        );
+    }
+
+    @Transactional
     public String issueRefreshToken(User user) {
         String refreshToken = jwtTokenProvider.createRefreshToken(user.getUserId());
         String tokenHash = hashToken(refreshToken);
@@ -35,6 +50,8 @@ public class TokenService {
                 Instant.ofEpochMilli(jwtTokenProvider.getExpiration(refreshToken)),
                 ZoneId.systemDefault()
         );
+
+        refreshTokenRepository.deleteByUser(user);
 
         RefreshToken savedToken = RefreshToken.builder()
                 .user(user)
@@ -77,7 +94,7 @@ public class TokenService {
             byte[] hash = digest.digest(token.getBytes(StandardCharsets.UTF_8));
             return HexFormat.of().formatHex(hash);
         } catch (Exception e) {
-            throw new IllegalStateException("토큰 해시 생성에 실패했습니다.");
+            throw new IllegalStateException("토큰 해시 생성에 실패했습니다.", e);
         }
     }
 }
