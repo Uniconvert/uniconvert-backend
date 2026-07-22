@@ -64,4 +64,36 @@ public class EcosApiClient {
             return Optional.empty();
         }
     }
+    // targetDate 하루만 조회 범위로 ECOS 호출
+    public Optional<EcosSearchRow> fetchRateByDate(String currencyCode, LocalDate targetDate) {
+        EcosItemCode itemCode = EcosItemCode.from(currencyCode);
+        LocalDate end = targetDate;
+        LocalDate start = targetDate.minusDays(5);
+
+        String url = String.format(
+                "%s/StatisticSearch/%s/json/kr/1/10/%s/D/%s/%s/%s",
+                baseUrl, apiKey, STAT_CODE,
+                start.format(DATE_FORMAT), end.format(DATE_FORMAT),
+                itemCode.getItemCode()
+        );
+
+        try {
+            EcosSearchResponse response = restClient.get()
+                    .uri(url)
+                    .retrieve()
+                    .body(EcosSearchResponse.class);
+
+            List<EcosSearchRow> rows = (response != null && response.statisticSearch() != null)
+                    ? response.statisticSearch().row()
+                    : null;
+            if (rows == null || rows.isEmpty()) {
+                return Optional.empty();
+            }
+
+            return Optional.of(rows.get(rows.size() - 1));
+        } catch (Exception e) {
+            log.warn("ECOS API 호출 실패 - currency: {}, date: {}, error: {}", currencyCode, targetDate, e.getMessage());
+            return Optional.empty();
+        }
+    }
 }

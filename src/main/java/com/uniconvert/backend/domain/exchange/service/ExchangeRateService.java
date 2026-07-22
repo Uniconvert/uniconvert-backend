@@ -49,6 +49,26 @@ public class ExchangeRateService {
                 .findTopByFromCurrencyAndToCurrencyOrderByRateDateDesc(currencyCode, HOME_CURRENCY)
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND));
     }
+    // 특정 과거 날짜의 환율 조회 (CSV 명세서 등 과거 지출 입력 시 사용)
+    @Transactional
+    public DailyExchangeRate getRateByDate(String currencyCode, LocalDate targetDate) {
+        Optional<DailyExchangeRate> savedRate = dailyExchangeRateRepository
+                .findByFromCurrencyAndToCurrencyAndRateDate(currencyCode, HOME_CURRENCY, targetDate);
+        if (savedRate.isPresent()) {
+            return savedRate.get();
+        }
+
+        // ★ getCurrentRate()는 fetchLatestRate() 호출 → 여기는 fetchRateByDate() 호출로 다름
+        Optional<EcosSearchRow> fetched = ecosApiClient.fetchRateByDate(currencyCode, targetDate);
+        if (fetched.isPresent()) {
+            return saveFromEcos(currencyCode, fetched.get());
+        }
+
+        // ★ getCurrentRate()는 실패 시 "가장 최근 값"으로 fallback하지만,
+        //   과거 날짜 조회는 엉뚱한 날짜 값을 잘못 적용하면 안 되므로 그냥 예외 처리
+        throw new CustomException(ErrorCode.NOT_FOUND);
+    }
+
 
     private DailyExchangeRate saveFromEcos(String currencyCode, EcosSearchRow row) {
         LocalDate rateDate = LocalDate.parse(row.time(), ECOS_DATE_FORMAT);
