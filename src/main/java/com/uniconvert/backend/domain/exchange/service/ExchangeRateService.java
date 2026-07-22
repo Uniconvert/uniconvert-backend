@@ -11,6 +11,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.uniconvert.backend.domain.exchange.entity.QuoteHistory;
+import com.uniconvert.backend.domain.exchange.repository.QuoteHistoryRepository;
+import com.uniconvert.backend.domain.user.entity.User;
+import com.uniconvert.backend.domain.user.repository.UserRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
@@ -26,6 +33,8 @@ public class ExchangeRateService {
 
     private final EcosApiClient ecosApiClient;
     private final DailyExchangeRateRepository dailyExchangeRateRepository;
+    private final QuoteHistoryRepository quoteHistoryRepository;
+    private final UserRepository userRepository;
 
     @Transactional
     public DailyExchangeRate getCurrentRate(String currencyCode) {
@@ -83,5 +92,21 @@ public class ExchangeRateService {
                 .orElseGet(() -> dailyExchangeRateRepository.save(
                         new DailyExchangeRate(currencyCode, HOME_CURRENCY, normalizedRate, rateDate)
                 ));
+    }
+    // 계산 내역 저장 (quote 계산할 때마다 호출)
+    @Transactional
+    public void saveQuoteHistory(Long userId, String fromCurrency, String toCurrency,
+                                 BigDecimal amount, BigDecimal convertedAmount, BigDecimal appliedRate) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND));
+        quoteHistoryRepository.save(
+                new QuoteHistory(user, fromCurrency, toCurrency, amount, convertedAmount, appliedRate)
+        );
+    }
+
+    // 최근 계산 내역 조회 (페이지네이션)
+    @Transactional(readOnly = true)
+    public Page<QuoteHistory> getQuoteHistory(Long userId, Pageable pageable) {
+        return quoteHistoryRepository.findByUser_IdOrderByCreatedAtDesc(userId, pageable);
     }
 }

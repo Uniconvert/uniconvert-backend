@@ -13,6 +13,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.uniconvert.backend.domain.exchange.dto.response.QuoteHistoryResponse;
+import com.uniconvert.backend.domain.exchange.entity.QuoteHistory;
+import com.uniconvert.backend.global.security.CustomUserDetails;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.data.domain.PageRequest;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -35,6 +42,7 @@ public class ExchangeRateController {
     @Operation(summary = "환율 계산기")
     @GetMapping("/quote")
     public ApiResponse<ExchangeQuoteResponse> quote(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestParam String from,
             @RequestParam String to,
             @RequestParam BigDecimal amount,
@@ -53,8 +61,31 @@ public class ExchangeRateController {
                 ? exchangeRateService.getRateByDate(from, date)
                 : exchangeRateService.getCurrentRate(from);
         BigDecimal converted = amount.multiply(rate.getRate()).setScale(2, RoundingMode.HALF_UP);
+
+        exchangeRateService.saveQuoteHistory(userDetails.getUserId(), from, to, amount, converted, rate.getRate());
+
         return ApiResponse.success(new ExchangeQuoteResponse(
                 from, to, amount, rate.getRate(), converted, rate.getRateDate()
         ));
     }
+    @Operation(
+            summary = "최근 계산 내역 조회",
+            description = """
+                환율 계산기(quote)로 계산했던 내역을 최신순으로 조회합니다.
+
+                page: 조회할 페이지 번호 (0부터 시작, 기본값 0)
+                size: 한 페이지에 담을 개수 (기본값 10)
+                """
+    )
+    @GetMapping("/quote/history")
+    public ApiResponse<Page<QuoteHistoryResponse>> getQuoteHistory(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<QuoteHistory> history = exchangeRateService.getQuoteHistory(userDetails.getUserId(), pageable);
+        return ApiResponse.success(history.map(QuoteHistoryResponse::from));
+    }
+
 }
