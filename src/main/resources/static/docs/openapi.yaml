@@ -37,7 +37,7 @@ tags:
   - name: Dashboard & Report
     description: 홈 대시보드, 리포트
 paths:
-  /auth/local/signup:
+  /auth/signup:
     post:
       tags:
         - Auth

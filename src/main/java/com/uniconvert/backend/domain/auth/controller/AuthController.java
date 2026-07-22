@@ -11,27 +11,33 @@ import com.uniconvert.backend.domain.auth.dto.request.SocialLoginRequest;
 import com.uniconvert.backend.global.response.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/auth")
+@Tag(name = "Auth", description = "인증·JWT (회원가입/로그인/이메일 인증/토큰 재발급)")
 public class AuthController {
 
     private final SocialAuthService socialAuthService;
 
     private final LocalAuthService localAuthService;
 
+    @Operation(summary = "자체 회원가입")
     @PostMapping("/signup")
     public ApiResponse<LoginResponse> signUp(@Valid @RequestBody LocalSignUpRequest request) {
         return ApiResponse.success(localAuthService.signUp(request));
     }
 
+    @Operation(summary = "자체 로그인")
     @PostMapping("/login")
     public ApiResponse<LoginResponse> login(@Valid @RequestBody LocalLoginRequest request) {
         return ApiResponse.success(localAuthService.login(request));
     }
 
+    @Operation(summary = "구글 소셜 로그인")
     @PostMapping("/social/google")
     public ApiResponse<LoginResponse> googleLogin(
             @Valid @RequestBody SocialLoginRequest request
@@ -41,11 +47,13 @@ public class AuthController {
         );
     }
 
+    @Operation(summary = "Access Token 재발급")
     @PostMapping("/reissue")
     public ApiResponse<LoginResponse> reissue(@Valid @RequestBody TokenReissueRequest request) {
         return ApiResponse.success(localAuthService.reissue(request));
     }
 
+    @Operation(summary = "로그아웃")
     @PostMapping("/logout")
     public ApiResponse<Void> logout(@Valid @RequestBody LogoutRequest request) {
         localAuthService.logout(request);
