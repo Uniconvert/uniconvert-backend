@@ -10,10 +10,13 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 @RestController
 @RequestMapping("/budgets")
 @RequiredArgsConstructor
+
+@Tag(name = "Reference & Budget", description = "참조 데이터 및 예산 관련 API")
 public class BudgetController {
 
     private final BudgetService budgetService;
