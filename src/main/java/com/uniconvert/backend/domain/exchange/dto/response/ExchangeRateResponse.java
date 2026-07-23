@@ -10,14 +10,24 @@ public record ExchangeRateResponse(
         String fromCurrency,
         String toCurrency,
         BigDecimal rate,
-        LocalDate rateDate
+        LocalDate rateDate,
+        BigDecimal changeRate,
+        LocalDate comparedDate
 ) {
     public static ExchangeRateResponse from(DailyExchangeRate entity) {
+        return of(entity, null, null);
+    }
+
+    public static ExchangeRateResponse of(DailyExchangeRate entity,
+                                   BigDecimal changeRate,
+                                   LocalDate comparedDate) {
         return new ExchangeRateResponse(
                 entity.getFromCurrency(),
                 entity.getToCurrency(),
                 entity.getRate(),
-                entity.getRateDate()
+                entity.getRateDate(),
+                changeRate,
+                comparedDate
         );
     }
 }

@@ -10,6 +10,8 @@ import com.uniconvert.backend.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.uniconvert.backend.domain.exchange.dto.response.ExchangeRateResponse;
+
 
 import com.uniconvert.backend.domain.exchange.entity.QuoteHistory;
 import com.uniconvert.backend.domain.exchange.repository.QuoteHistoryRepository;
@@ -35,6 +37,20 @@ public class ExchangeRateService {
     private final DailyExchangeRateRepository dailyExchangeRateRepository;
     private final QuoteHistoryRepository quoteHistoryRepository;
     private final UserRepository userRepository;
+
+    @Transactional
+    public ExchangeRateResponse getCurrentRateWithChange(String currencyCode) {
+        DailyExchangeRate entity = getCurrentRate(currencyCode);
+
+        ChangeInfo change = calculateChange(
+                entity.getFromCurrency(),
+                entity.getToCurrency(),
+                entity.getRateDate(),
+                entity.getRate()
+        );
+
+        return ExchangeRateResponse.of(entity, change.changeRate(), change.comparedDate());
+    }
 
     @Transactional
     public DailyExchangeRate getCurrentRate(String currencyCode) {
@@ -78,6 +94,24 @@ public class ExchangeRateService {
         throw new CustomException(ErrorCode.NOT_FOUND);
     }
 
+    private ChangeInfo calculateChange(String from, String to, LocalDate baseDate, BigDecimal baseRate) {
+        return dailyExchangeRateRepository
+                .findTopByFromCurrencyAndToCurrencyAndRateDateLessThanOrderByRateDateDesc(from, to, baseDate)
+                // 0 또는 null이면 나눗셈 불가 → 비교 포기
+                .filter(prev -> prev.getRate() != null
+                        && prev.getRate().compareTo(BigDecimal.ZERO) > 0)
+                .map(prev -> new ChangeInfo(
+                        baseRate.subtract(prev.getRate())
+                                .divide(prev.getRate(), 6, RoundingMode.HALF_UP)
+                                .multiply(BigDecimal.valueOf(100))
+                                .setScale(2, RoundingMode.HALF_UP),   // 소수점 2자리 (예: 0.80)
+                        prev.getRateDate()
+                ))
+                // 비교 대상 없음(첫 수집일 등) → null 반환, 프론트에서 배지 숨김
+                .orElse(new ChangeInfo(null, null));
+    }
+
+    private record ChangeInfo(BigDecimal changeRate, LocalDate comparedDate) {}
 
     private DailyExchangeRate saveFromEcos(String currencyCode, EcosSearchRow row) {
         LocalDate rateDate = LocalDate.parse(row.time(), ECOS_DATE_FORMAT);

@@ -35,8 +35,8 @@ public class ExchangeRateController {
     @Operation(summary = "현재 대표 환율 조회")
     @GetMapping("/current")
     public ApiResponse<ExchangeRateResponse> getCurrent(@RequestParam String from, @RequestParam String to) {
-        DailyExchangeRate rate = exchangeRateService.getCurrentRate(from);
-        return ApiResponse.success(ExchangeRateResponse.from(rate));
+        ExchangeRateResponse response = exchangeRateService.getCurrentRateWithChange(from);
+        return ApiResponse.success(response);
     }
 
     @Operation(summary = "환율 계산기")
