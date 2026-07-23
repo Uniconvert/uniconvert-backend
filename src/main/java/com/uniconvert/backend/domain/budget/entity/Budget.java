@@ -9,33 +9,49 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 
-@Getter
 @Entity
-@Table(name = "budget")
+@Getter
+@Table(
+        name = "budget",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_budget_user_year_month",
+                        columnNames = {"user_id", "year_month"}
+                )
+        }
+)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Budget extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Column(name = "budget_id")
+    private Long budgetId;
 
     @Column(name = "year_month", nullable = false, length = 7)
     private String yearMonth;
 
-    @Column(name = "monthly_limit_home", nullable = false, precision = 19, scale = 4)
+    @Column(name = "monthly_limit_home", nullable = false, precision = 15, scale = 2)
     private BigDecimal monthlyLimitHome;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    public Budget(String yearMonth, BigDecimal monthlyLimitHome, User user) {
+    public Budget(User user, String yearMonth, BigDecimal monthlyLimitHome) {
+        this.user = user;
         this.yearMonth = yearMonth;
         this.monthlyLimitHome = monthlyLimitHome;
-        this.user = user;
     }
 
-    // PUT /budgets/{yearMonth} — upsert 시 이미 존재하면 값만 갱신
+    public Long getId() {
+        return budgetId;
+    }
+
+    public void updateMonthlyLimitHome(BigDecimal monthlyLimitHome) {
+        this.monthlyLimitHome = monthlyLimitHome;
+    }
+
     public void updateAmount(BigDecimal monthlyLimitHome) {
         this.monthlyLimitHome = monthlyLimitHome;
     }

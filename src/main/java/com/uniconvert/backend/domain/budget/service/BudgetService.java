@@ -34,7 +34,7 @@ public class BudgetService {
         if (budget == null) {
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND));
-            budget = new Budget(yearMonth, request.monthlyLimitHome(), user);
+            budget = new Budget(user, yearMonth, request.monthlyLimitHome());
         } else {
             budget.updateAmount(request.monthlyLimitHome());
         }
