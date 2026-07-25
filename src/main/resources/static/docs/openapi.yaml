@@ -37,7 +37,7 @@ tags:
   - name: Dashboard & Report
     description: 홈 대시보드, 리포트
 paths:
-  /auth/local/sign-up:
+  /auth/signup:
     post:
       tags:
         - Auth
@@ -109,7 +109,7 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '409':
           $ref: '#/components/responses/Conflict'
-  /auth/local/login:
+  /auth/login:
     post:
       tags:
         - Auth
@@ -152,7 +152,7 @@ paths:
                             type: boolean
         '401':
           $ref: '#/components/responses/Unauthorized'
-  /auth/social/login:
+  /auth/social/google:
     post:
       tags:
         - Auth
@@ -269,43 +269,7 @@ paths:
                             type: boolean
         '400':
           $ref: '#/components/responses/BadRequest'
-  /auth/token/reissue:
-    post:
-      tags:
-        - Auth
-      summary: Access Token 재발급 | 텐텐
-      security: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - refreshToken
-              properties:
-                refreshToken:
-                  type: string
-      responses:
-        '200':
-          description: 재발급 성공
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: '#/components/schemas/ApiResponse'
-                  - type: object
-                    properties:
-                      data:
-                        type: object
-                        properties:
-                          accessToken:
-                            type: string
-                          refreshToken:
-                            type: string
-                            description: 회전(rotate) 정책 적용 시 새 Refresh Token
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+
   /users/me:
     get:
       tags:

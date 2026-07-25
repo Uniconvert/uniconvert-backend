@@ -10,6 +10,12 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
 
+    env:
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+      EC2_SECURITY_GROUP_ID: ${{ secrets.EC2_SECURITY_GROUP_ID }}
+      EC2_HOST: ${{ secrets.EC2_HOST }}
+      EC2_USER: ${{ secrets.EC2_USER }}
+
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -26,23 +32,48 @@ jobs:
       - name: Build Spring Boot jar
         run: ./gradlew clean build -x test
 
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Get GitHub Actions runner public IP
+        run: |
+          RUNNER_IP=$(curl -s https://checkip.amazonaws.com | tr -d '\n')
+          echo "RUNNER_IP=$RUNNER_IP" >> "$GITHUB_ENV"
+          echo "Runner IP: $RUNNER_IP"
+
+      - name: Open SSH port for runner
+        run: |
+          echo "Security Group ID: $EC2_SECURITY_GROUP_ID"
+          echo "Runner IP: $RUNNER_IP"
+
+          aws ec2 authorize-security-group-ingress \
+            --group-id "$EC2_SECURITY_GROUP_ID" \
+            --protocol tcp \
+            --port 22 \
+            --cidr "$RUNNER_IP/32" \
+          || echo "SSH rule may already exist. Continue."
+
       - name: Prepare SSH key
         run: |
           mkdir -p ~/.ssh
           printf "%s\n" "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/uniconvert-key
           chmod 600 ~/.ssh/uniconvert-key
-          ssh-keyscan -T 30 -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts || true
+          ssh-keyscan -T 30 -H "$EC2_HOST" >> ~/.ssh/known_hosts || true
 
       - name: Upload jar to EC2
         run: |
           JAR_FILE=$(ls build/libs/*SNAPSHOT.jar | grep -v plain | head -n 1)
           scp -o StrictHostKeyChecking=no -i ~/.ssh/uniconvert-key "$JAR_FILE" \
-            ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/ubuntu/app.jar
+            "$EC2_USER@$EC2_HOST:/home/ubuntu/app.jar"
 
       - name: Restart Spring Boot service
         run: |
           ssh -o StrictHostKeyChecking=no -i ~/.ssh/uniconvert-key \
-            ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} \
+            "$EC2_USER@$EC2_HOST" \
             "sudo systemctl restart uniconvert"
 
       - name: Health check
@@ -58,3 +89,20 @@ jobs:
 
           echo "Health check failed"
           exit 1
+
+      - name: Close SSH port
+        if: always()
+        run: |
+          echo "Security Group ID: $EC2_SECURITY_GROUP_ID"
+          echo "Runner IP: $RUNNER_IP"
+
+          if [ -n "$RUNNER_IP" ] && [ -n "$EC2_SECURITY_GROUP_ID" ]; then
+            aws ec2 revoke-security-group-ingress \
+              --group-id "$EC2_SECURITY_GROUP_ID" \
+              --protocol tcp \
+              --port 22 \
+              --cidr "$RUNNER_IP/32" \
+            || echo "SSH rule may already be removed. Continue."
+          else
+            echo "RUNNER_IP or EC2_SECURITY_GROUP_ID is empty. Skip closing SSH port."
+          fi

@@ -8,12 +8,12 @@ import java.util.Arrays;
 public enum CategoryType {
     FOOD(1L, "식비", "icon_food", 1),
     TRANSPORT(2L, "교통", "icon_transport", 2),
-    TUITION(3L, "학비", "icon_tuition", 3),
-    HOUSING(4L, "기숙사", "icon_housing", 4),
-    SHOPPING(5L, "쇼핑", "icon_shopping", 5),
-    MEDICAL(6L, "의료", "icon_medical", 6),
-    VISA(7L, "비자", "icon_visa", 7),
-    LEISURE(8L, "여가", "icon_leisure", 8),
+    SHOPPING(3L, "쇼핑", "icon_shopping", 3),
+    TELECOM(4L, "통신", "icon_telecom", 4),
+    ACADEMIC(5L, "학업", "icon_academic", 5),
+    TRAVEL(6L, "여행", "icon_travel", 6),
+    HOUSING(7L, "주거", "icon_housing", 7),
+    SAVINGS(8L, "저축", "icon_savings", 8),
     ETC(9L, "기타", "icon_etc", 9);
 
     private final Long categoryId;
