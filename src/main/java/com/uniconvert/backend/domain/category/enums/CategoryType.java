@@ -33,4 +33,11 @@ public enum CategoryType {
         return Arrays.stream(values())
                 .anyMatch(type -> type.categoryId.equals(categoryId));
     }
+
+    public static CategoryType fromId(Long categoryId) {
+        return Arrays.stream(values())
+                .filter(type -> type.categoryId.equals(categoryId))
+                .findFirst()
+                .orElse(null);
+    }
 }

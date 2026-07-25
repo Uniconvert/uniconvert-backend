@@ -16,4 +16,5 @@ public record CategoryResponse(
                 type.getSortOrder()
         );
     }
+
 }
