@@ -153,7 +153,7 @@ public class ExpenseService {
     @Transactional(readOnly = true)
     public BigDecimal getRemainingBudget(Long userId, YearMonth yearMonth) {
         String ym = yearMonth.format(DateTimeFormatter.ofPattern("yyyy-MM"));
-        Budget budget = budgetRepository.findByUser_IdAndYearMonth(userId, ym)
+        Budget budget = budgetRepository.findByUserIdAndYearMonth(userId, ym)
                 .orElseThrow(() -> new CustomException(ErrorCode.BUDGET_NOT_FOUND));
 
         LocalDateTime startAt = yearMonth.atDay(1).atStartOfDay();

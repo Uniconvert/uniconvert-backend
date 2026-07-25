@@ -1,4 +1,5 @@
 package com.uniconvert.backend.domain.expense.entity;
+import com.uniconvert.backend.global.entity.BaseTimeEntity;
 
 import com.uniconvert.backend.domain.user.entity.User;
 import jakarta.persistence.*;
@@ -9,7 +10,7 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "expense")
-public class Expense {
+public class Expense extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -58,12 +59,6 @@ public class Expense {
     // CategoryType enum 참조. DB FK 아님, CategoryType.isValid()로 검증
     @Column(name = "category_id", nullable = false)
     private Long categoryId;
-
-    @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
-    private LocalDateTime createdAt;
-
-    @Column(name = "updated_at", nullable = false, insertable = false)
-    private LocalDateTime updatedAt;
 
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
@@ -146,13 +141,6 @@ public class Expense {
         return categoryId;
     }
 
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
 
     public LocalDateTime getDeletedAt() {
         return deletedAt;
@@ -187,8 +175,4 @@ public class Expense {
         this.deletedAt = LocalDateTime.now();
     }
 
-    @PreUpdate
-    protected void onUpdate() {
-        this.updatedAt = LocalDateTime.now();
-    }
 }

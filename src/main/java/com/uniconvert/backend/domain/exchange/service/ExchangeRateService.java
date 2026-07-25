@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.uniconvert.backend.domain.exchange.dto.response.ExchangeRateResponse;
+import com.uniconvert.backend.domain.exchange.dto.response.ConversionResult;
 
 
 import com.uniconvert.backend.domain.exchange.entity.QuoteHistory;
@@ -92,6 +93,31 @@ public class ExchangeRateService {
         // ★ getCurrentRate()는 실패 시 "가장 최근 값"으로 fallback하지만,
         //   과거 날짜 조회는 엉뚱한 날짜 값을 잘못 적용하면 안 되므로 그냥 예외 처리
         throw new CustomException(ErrorCode.NOT_FOUND);
+    }
+
+    @Transactional
+    public ConversionResult getConversionRate(String originalCurrency, String homeCurrency, LocalDate targetDate) {
+
+        if (originalCurrency.equals(homeCurrency)) {
+            return new ConversionResult(BigDecimal.ONE, targetDate);
+        }
+
+        if (HOME_CURRENCY.equals(homeCurrency)) {
+            DailyExchangeRate rate = getRateByDate(originalCurrency, targetDate);
+            return new ConversionResult(rate.getRate(), rate.getRateDate());
+        }
+
+        BigDecimal originalToKrwRate = HOME_CURRENCY.equals(originalCurrency)
+                ? BigDecimal.ONE
+                : getRateByDate(originalCurrency, targetDate).getRate();
+
+        DailyExchangeRate homeToKrw = getRateByDate(homeCurrency, targetDate);
+
+        BigDecimal crossRate = originalToKrwRate
+                .divide(homeToKrw.getRate(), 6, RoundingMode.HALF_UP)
+                .setScale(4, RoundingMode.HALF_UP);
+
+        return new ConversionResult(crossRate, targetDate);
     }
 
     private ChangeInfo calculateChange(String from, String to, LocalDate baseDate, BigDecimal baseRate) {
