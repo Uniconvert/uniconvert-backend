@@ -22,13 +22,26 @@ CREATE TABLE pot (
 );
 
 CREATE TABLE pot_allocation (
-    id                  BIGINT AUTO_INCREMENT PRIMARY KEY,
+    id                  BIGINT NOT NULL AUTO_INCREMENT,
     pot_id              BIGINT NOT NULL,
     `year_month`        VARCHAR(7) NOT NULL,
     amount              DECIMAL(19,4) NOT NULL,
     created_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_pot_allocation_pot FOREIGN KEY (pot_id) REFERENCES pot(id)
+    updated_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                        ON UPDATE CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (id),
+
+    CONSTRAINT uk_pot_allocation_pot_month
+         UNIQUE (pot_id, `year_month`),
+
+    CONSTRAINT fk_pot_allocation_pot
+         FOREIGN KEY (pot_id)
+         REFERENCES pot(id)
+         ON DELETE CASCADE,
+
+    INDEX idx_pot_allocation_pot_id (pot_id),
+    INDEX idx_pot_allocation_year_month (`year_month`)
 );
 
 ALTER TABLE expense CHANGE expense_id id BIGINT NOT NULL AUTO_INCREMENT;
