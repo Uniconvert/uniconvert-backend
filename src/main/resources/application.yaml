@@ -33,3 +33,7 @@ springdoc:
     path: /v3/api-docs
   swagger-ui:
     path: /swagger
+
+ecos:
+  api-key: ${ECOS_API_KEY}
+  base-url: ${ECOS_BASE_URL:https://ecos.bok.or.kr/api}
