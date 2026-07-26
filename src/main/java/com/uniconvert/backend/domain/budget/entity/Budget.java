@@ -25,7 +25,7 @@ public class Budget extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "budget_id")
+    @Column(name = "id")
     private Long budgetId;
 
     @Column(name = "year_month", nullable = false, length = 7)
