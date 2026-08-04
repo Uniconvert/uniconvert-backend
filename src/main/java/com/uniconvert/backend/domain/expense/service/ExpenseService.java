@@ -12,6 +12,7 @@ import com.uniconvert.backend.domain.expense.dto.response.ExpenseResponse;
 import com.uniconvert.backend.domain.expense.entity.Expense;
 import com.uniconvert.backend.domain.expense.entity.RateSource;
 import com.uniconvert.backend.domain.expense.repository.ExpenseRepository;
+import com.uniconvert.backend.domain.pot.repository.PotAllocationRepository;
 import com.uniconvert.backend.domain.user.entity.User;
 import com.uniconvert.backend.domain.user.repository.UserRepository;
 import com.uniconvert.backend.global.exception.CustomException;
@@ -37,6 +38,8 @@ public class ExpenseService {
     private final UserRepository userRepository;
     private final BudgetRepository budgetRepository;
     private final ExchangeRateService exchangeRateService;
+    private final PotAllocationRepository potAllocationRepository;
+
 
     // 지출 등록
     @Transactional
@@ -148,23 +151,57 @@ public class ExpenseService {
         expense.softDelete();
     }
 
-    // 남은 예산 계산 = 월 예산 − 이번 달 Pot 배정 합계 − 이번 달 지출 합계
-    // ⚠️ Pot 도메인 미구현으로 배정 합계는 임시 0 처리. Pot 생기면 potAllocationRepository 연동 필요
+    // 사용 가능 금액 계산
+   // = 월 예산 − 이번 달 지출 합계 − 이번 달 Pot 배정 합계
     @Transactional(readOnly = true)
-    public BigDecimal getRemainingBudget(Long userId, YearMonth yearMonth) {
-        String ym = yearMonth.format(DateTimeFormatter.ofPattern("yyyy-MM"));
-        Budget budget = budgetRepository.findByUserIdAndYearMonth(userId, ym)
-                .orElseThrow(() -> new CustomException(ErrorCode.BUDGET_NOT_FOUND));
+    public BigDecimal getRemainingBudget(
+            Long userId,
+            YearMonth yearMonth
+    ) {
+        String ym = yearMonth.format(
+                DateTimeFormatter.ofPattern("yyyy-MM")
+        );
 
-        LocalDateTime startAt = yearMonth.atDay(1).atStartOfDay();
-        LocalDateTime endAt = yearMonth.atEndOfMonth().atTime(23, 59, 59);
-        BigDecimal totalExpense = expenseRepository.sumConvertedAmountByPeriod(userId, startAt, endAt);
+        Budget budget = budgetRepository
+                .findByUserIdAndYearMonth(userId, ym)
+                .orElseThrow(() ->
+                        new CustomException(
+                                ErrorCode.BUDGET_NOT_FOUND
+                        )
+                );
 
-        BigDecimal potAllocationTotal = BigDecimal.ZERO; // TODO: Pot 도메인 연동 후 교체
+        LocalDateTime startAt =
+                yearMonth.atDay(1).atStartOfDay();
+
+        LocalDateTime endAt =
+                yearMonth.atEndOfMonth()
+                        .atTime(23, 59, 59);
+
+        BigDecimal totalExpense =
+                expenseRepository.sumConvertedAmountByPeriod(
+                        userId,
+                        startAt,
+                        endAt
+                );
+
+        if (totalExpense == null) {
+            totalExpense = BigDecimal.ZERO;
+        }
+
+        BigDecimal potAllocationTotal =
+                potAllocationRepository
+                        .sumAmountByUserIdAndYearMonth(
+                                userId,
+                                ym
+                        );
+
+        if (potAllocationTotal == null) {
+            potAllocationTotal = BigDecimal.ZERO;
+        }
 
         return budget.getMonthlyLimitHome()
-                .subtract(potAllocationTotal)
-                .subtract(totalExpense);
+                .subtract(totalExpense)
+                .subtract(potAllocationTotal);
     }
 
     private Expense getOwnedExpense(Long userId, Long expenseId) {
