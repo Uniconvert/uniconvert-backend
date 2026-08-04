@@ -22,11 +22,14 @@ CREATE TABLE pot (
 );
 
 CREATE TABLE pot_allocation (
+    id                  BIGINT AUTO_INCREMENT PRIMARY KEY,
     id                  BIGINT NOT NULL AUTO_INCREMENT,
     pot_id              BIGINT NOT NULL,
     `year_month`        VARCHAR(7) NOT NULL,
     amount              DECIMAL(19,4) NOT NULL,
     created_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_pot_allocation_pot FOREIGN KEY (pot_id) REFERENCES pot(id)
     updated_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
                         ON UPDATE CURRENT_TIMESTAMP,
 

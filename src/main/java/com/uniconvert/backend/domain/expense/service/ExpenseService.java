@@ -40,21 +40,31 @@ public class ExpenseService {
     private final ExchangeRateService exchangeRateService;
     private final PotAllocationRepository potAllocationRepository;
 
-
     // 지출 등록
     @Transactional
-    public ExpenseResponse createExpense(Long userId, ExpenseCreateRequest request) {
+    public ExpenseResponse createExpense(
+            Long userId,
+            ExpenseCreateRequest request
+    ) {
         User user = getUser(userId);
         validateCategory(request.categoryId());
 
         LocalDate rateDate = request.spentAt().toLocalDate();
-        ConversionResult conversion = exchangeRateService.getConversionRate(
-                request.originalCurrency(), user.getHomeCurrencyCode(), rateDate
-        );
 
-        BigDecimal convertedAmountHome = request.originalAmount()
-                .multiply(conversion.rate())
-                .setScale(4, java.math.RoundingMode.HALF_UP);
+        ConversionResult conversion =
+                exchangeRateService.getConversionRate(
+                        request.originalCurrency(),
+                        user.getHomeCurrencyCode(),
+                        rateDate
+                );
+
+        BigDecimal convertedAmountHome =
+                request.originalAmount()
+                        .multiply(conversion.rate())
+                        .setScale(
+                                4,
+                                java.math.RoundingMode.HALF_UP
+                        );
 
         Expense expense = new Expense(
                 user,
@@ -73,42 +83,77 @@ public class ExpenseService {
         );
 
         Expense saved = expenseRepository.save(expense);
+
         return ExpenseResponse.from(saved);
     }
 
     // 지출 단건 조회
     @Transactional(readOnly = true)
-    public ExpenseResponse getExpense(Long userId, Long expenseId) {
-        Expense expense = getOwnedExpense(userId, expenseId);
+    public ExpenseResponse getExpense(
+            Long userId,
+            Long expenseId
+    ) {
+        Expense expense =
+                getOwnedExpense(userId, expenseId);
+
         return ExpenseResponse.from(expense);
     }
 
-    // 지출 목록 조회 (필터: 기간·카테고리, page=0&size=6)
+    // 지출 목록 조회
+    // 필터: 기간, 카테고리 / page=0, size=6
     @Transactional(readOnly = true)
-    public Page<ExpenseListItemResponse> getExpenses(Long userId, LocalDateTime startAt, LocalDateTime endAt,
-                                                     Long categoryId, Pageable pageable) {
-        return expenseRepository.findAllByFilter(userId, startAt, endAt, categoryId, pageable)
+    public Page<ExpenseListItemResponse> getExpenses(
+            Long userId,
+            LocalDateTime startAt,
+            LocalDateTime endAt,
+            Long categoryId,
+            Pageable pageable
+    ) {
+        return expenseRepository
+                .findAllByFilter(
+                        userId,
+                        startAt,
+                        endAt,
+                        categoryId,
+                        pageable
+                )
                 .map(ExpenseListItemResponse::from);
     }
 
-    // 최근 지출 (홈 화면용)
+    // 최근 지출 조회
+    // 홈 화면용
     @Transactional(readOnly = true)
-    public List<ExpenseListItemResponse> getRecentExpenses(Long userId) {
-        return expenseRepository.findTop5ByUser_IdAndDeletedAtIsNullOrderBySpentAtDesc(userId)
+    public List<ExpenseListItemResponse> getRecentExpenses(
+            Long userId
+    ) {
+        return expenseRepository
+                .findTop5ByUser_IdAndDeletedAtIsNullOrderBySpentAtDesc(
+                        userId
+                )
                 .stream()
                 .map(ExpenseListItemResponse::from)
                 .toList();
     }
 
-    // 지출 수정 — 날짜·통화 변경 시 환율 재계산
+    // 지출 수정
+    // 날짜 또는 통화가 변경되면 환율을 다시 계산합니다.
     @Transactional
-    public ExpenseResponse updateExpense(Long userId, Long expenseId, ExpenseUpdateRequest request) {
-        Expense expense = getOwnedExpense(userId, expenseId);
+    public ExpenseResponse updateExpense(
+            Long userId,
+            Long expenseId,
+            ExpenseUpdateRequest request
+    ) {
+        Expense expense =
+                getOwnedExpense(userId, expenseId);
+
         validateCategory(request.categoryId());
 
         boolean rateRecalculationNeeded =
-                !expense.getOriginalCurrency().equals(request.originalCurrency())
-                        || !expense.getSpentAt().toLocalDate().equals(request.spentAt().toLocalDate());
+                !expense.getOriginalCurrency()
+                        .equals(request.originalCurrency())
+                        || !expense.getSpentAt()
+                        .toLocalDate()
+                        .equals(request.spentAt().toLocalDate());
 
         expense.updateDetails(
                 request.originalAmount(),
@@ -122,37 +167,68 @@ public class ExpenseService {
 
         if (rateRecalculationNeeded) {
             User user = expense.getUser();
-            LocalDate rateDate = request.spentAt().toLocalDate();
-            ConversionResult conversion = exchangeRateService.getConversionRate(
-                    request.originalCurrency(), user.getHomeCurrencyCode(), rateDate
-            );
-            BigDecimal convertedAmountHome = request.originalAmount()
-                    .multiply(conversion.rate())
-                    .setScale(4, java.math.RoundingMode.HALF_UP);
 
-            expense.updateRateInfo(conversion.rate(), RateSource.DAILY_AVERAGE,
-                    conversion.rateDate(), convertedAmountHome);
+            LocalDate rateDate =
+                    request.spentAt().toLocalDate();
+
+            ConversionResult conversion =
+                    exchangeRateService.getConversionRate(
+                            request.originalCurrency(),
+                            user.getHomeCurrencyCode(),
+                            rateDate
+                    );
+
+            BigDecimal convertedAmountHome =
+                    request.originalAmount()
+                            .multiply(conversion.rate())
+                            .setScale(
+                                    4,
+                                    java.math.RoundingMode.HALF_UP
+                            );
+
+            expense.updateRateInfo(
+                    conversion.rate(),
+                    RateSource.DAILY_AVERAGE,
+                    conversion.rateDate(),
+                    convertedAmountHome
+            );
         } else {
-            // 통화·날짜는 그대로, 금액만 바뀐 경우 → 기존 환율로 환산 금액만 재계산
-            BigDecimal convertedAmountHome = request.originalAmount()
-                    .multiply(expense.getAppliedRate())
-                    .setScale(4, java.math.RoundingMode.HALF_UP);
-            expense.updateRateInfo(expense.getAppliedRate(), expense.getRateSource(),
-                    expense.getRateDate(), convertedAmountHome);
+            // 통화와 날짜는 그대로이고 금액만 변경된 경우
+            // 기존 환율을 이용해 홈 통화 금액만 다시 계산합니다.
+            BigDecimal convertedAmountHome =
+                    request.originalAmount()
+                            .multiply(expense.getAppliedRate())
+                            .setScale(
+                                    4,
+                                    java.math.RoundingMode.HALF_UP
+                            );
+
+            expense.updateRateInfo(
+                    expense.getAppliedRate(),
+                    expense.getRateSource(),
+                    expense.getRateDate(),
+                    convertedAmountHome
+            );
         }
 
         return ExpenseResponse.from(expense);
     }
 
-    // 지출 삭제 (소프트 삭제)
+    // 지출 삭제
+    // 실제 데이터를 삭제하지 않고 삭제 일시를 기록합니다.
     @Transactional
-    public void deleteExpense(Long userId, Long expenseId) {
-        Expense expense = getOwnedExpense(userId, expenseId);
+    public void deleteExpense(
+            Long userId,
+            Long expenseId
+    ) {
+        Expense expense =
+                getOwnedExpense(userId, expenseId);
+
         expense.softDelete();
     }
 
     // 사용 가능 금액 계산
-   // = 월 예산 − 이번 달 지출 합계 − 이번 달 Pot 배정 합계
+    // 월 예산 - 해당 월 지출 합계 - 해당 월 Pot 배정 합계
     @Transactional(readOnly = true)
     public BigDecimal getRemainingBudget(
             Long userId,
@@ -171,18 +247,20 @@ public class ExpenseService {
                 );
 
         LocalDateTime startAt =
-                yearMonth.atDay(1).atStartOfDay();
+                yearMonth.atDay(1)
+                        .atStartOfDay();
 
         LocalDateTime endAt =
                 yearMonth.atEndOfMonth()
                         .atTime(23, 59, 59);
 
         BigDecimal totalExpense =
-                expenseRepository.sumConvertedAmountByPeriod(
-                        userId,
-                        startAt,
-                        endAt
-                );
+                expenseRepository
+                        .sumConvertedAmountByPeriod(
+                                userId,
+                                startAt,
+                                endAt
+                        );
 
         if (totalExpense == null) {
             totalExpense = BigDecimal.ZERO;
@@ -204,24 +282,47 @@ public class ExpenseService {
                 .subtract(potAllocationTotal);
     }
 
-    private Expense getOwnedExpense(Long userId, Long expenseId) {
-        return expenseRepository.findByIdAndUser_IdAndDeletedAtIsNull(expenseId, userId)
-                .orElseThrow(() -> new CustomException(ErrorCode.EXPENSE_NOT_FOUND));
+    private Expense getOwnedExpense(
+            Long userId,
+            Long expenseId
+    ) {
+        return expenseRepository
+                .findByIdAndUser_IdAndDeletedAtIsNull(
+                        expenseId,
+                        userId
+                )
+                .orElseThrow(() ->
+                        new CustomException(
+                                ErrorCode.EXPENSE_NOT_FOUND
+                        )
+                );
     }
 
     private User getUser(Long userId) {
-        return userRepository.findById(userId)
-                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND));
+        return userRepository
+                .findById(userId)
+                .orElseThrow(() ->
+                        new CustomException(
+                                ErrorCode.NOT_FOUND
+                        )
+                );
     }
 
     private void validateCategory(Long categoryId) {
         if (!CategoryType.isValid(categoryId)) {
-            throw new CustomException(ErrorCode.INVALID_CATEGORY);
+            throw new CustomException(
+                    ErrorCode.INVALID_CATEGORY
+            );
         }
     }
 
-    // 상점명 자동추천용 정규화 (소문자, 공백 제거 정도의 단순 처리 — 필요시 고도화)
-    private String normalizeMerchantName(String merchantName) {
-        return merchantName == null ? null : merchantName.trim().toLowerCase();
+    // 상점명 자동 추천용 정규화
+    // 소문자로 변환하고 앞뒤 공백을 제거합니다.
+    private String normalizeMerchantName(
+            String merchantName
+    ) {
+        return merchantName == null
+                ? null
+                : merchantName.trim().toLowerCase();
     }
 }
