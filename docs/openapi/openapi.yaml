@@ -112,8 +112,8 @@ paths:
     $ref: './paths/expense.yaml#/expenses'
   /expenses/{expenseId}:
     $ref: './paths/expense.yaml#/expense-detail'
-  /expenses/imports:
-    $ref: './paths/expense.yaml#/imports'
+  /expenses/import:
+    $ref: './paths/expense.yaml#/import'
   /merchant-category-preferences/suggest:
     $ref: './paths/expense.yaml#/merchant-category-suggest'
 
@@ -191,6 +191,10 @@ components:
       $ref: './components/schemas.yaml#/ExpenseSummaryResponse'
     ExpenseDetailResponse:
       $ref: './components/schemas.yaml#/ExpenseDetailResponse'
+    ExpenseImportResponse:
+      $ref: './components/schemas.yaml#/ExpenseImportResponse'
+    ExpenseImportErrorDetail:
+      $ref: './components/schemas.yaml#/ExpenseImportErrorDetail'
     DashboardResponse:
       $ref: './components/schemas.yaml#/DashboardResponse'
     MonthlyReportResponse:

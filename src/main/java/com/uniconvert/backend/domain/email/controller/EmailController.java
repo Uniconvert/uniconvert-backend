@@ -19,10 +19,10 @@ public class EmailController {
 
     private final EmailReportService emailReportService;
 
-    @Operation(summary = "오늘의 리포트 이메일 발송", description = "'이메일로 리포트 보내기' 버튼. 본인 가입 이메일로 오늘자 리포트를 발송한다.")
-    @PostMapping("/daily")
-    public ApiResponse<Void> sendDailyReport(@AuthenticationPrincipal CustomUserDetails userDetails) {
-        emailReportService.sendDailyReport(userDetails.getUserId());
+    @Operation(summary = "리포트 이메일 즉시 발송", description = "아이콘 클릭 시 그 즉시 현재 데이터 기준으로 리포트를 본인 이메일로 발송한다.")
+    @PostMapping("/send")
+    public ApiResponse<Void> sendReport(@AuthenticationPrincipal CustomUserDetails userDetails) {
+        emailReportService.sendReport(userDetails.getUserId());
         return ApiResponse.success(null);
     }
 }
