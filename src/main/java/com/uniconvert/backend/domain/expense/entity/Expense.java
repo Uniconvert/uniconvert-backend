@@ -141,7 +141,6 @@ public class Expense extends BaseTimeEntity {
         return categoryId;
     }
 
-
     public LocalDateTime getDeletedAt() {
         return deletedAt;
     }

@@ -257,6 +257,51 @@ ExpenseDetailResponse:
       type: string
       format: date-time
 
+ExpenseImportErrorDetail:
+  type: object
+  properties:
+    rowNumber:
+      type: integer
+      description: CSV 데이터 행 번호(헤더 제외, 1부터 시작)
+      example: 12
+    merchantName:
+      type: string
+      nullable: true
+      example: Mindwise Ai LLC
+    reason:
+      type: string
+      description: 환율을 구하지 못해 저장하지 않고 오류로 분류한 이유
+      example: "지원하지 않는 통화입니다: GBP"
+
+ExpenseImportResponse:
+  type: object
+  properties:
+    provider:
+      type: string
+      description: 자동 판별된 CSV 제공자
+      enum: [WISE, MONZO]
+      example: WISE
+    totalRowCount:
+      type: integer
+      description: CSV 데이터 행 총 개수(헤더 제외)
+      example: 42
+    savedCount:
+      type: integer
+      description: 지출로 저장된 행 수
+      example: 30
+    excludedCount:
+      type: integer
+      description: 입금·충전·취소 등 지출이 아니라서 제외된 행 수
+      example: 6
+    errorCount:
+      type: integer
+      description: 환율을 구하지 못해 저장하지 않은 행 수
+      example: 1
+    errors:
+      type: array
+      items:
+        $ref: '#/ExpenseImportErrorDetail'
+
 DashboardResponse:
   type: object
   properties:

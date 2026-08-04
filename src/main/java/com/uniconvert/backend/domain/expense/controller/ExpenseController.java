@@ -2,20 +2,28 @@ package com.uniconvert.backend.domain.expense.controller;
 
 import com.uniconvert.backend.domain.expense.dto.request.ExpenseCreateRequest;
 import com.uniconvert.backend.domain.expense.dto.request.ExpenseUpdateRequest;
+import com.uniconvert.backend.domain.expense.dto.response.ExpenseImportResponse;
 import com.uniconvert.backend.domain.expense.dto.response.ExpenseListItemResponse;
 import com.uniconvert.backend.domain.expense.dto.response.ExpenseResponse;
+import com.uniconvert.backend.domain.expense.service.ExpenseImportService;
 import com.uniconvert.backend.domain.expense.service.ExpenseService;
 import com.uniconvert.backend.global.response.ApiResponse;
 import com.uniconvert.backend.global.security.CustomUserDetails;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -29,6 +37,7 @@ import java.util.List;
 public class ExpenseController {
 
     private final ExpenseService expenseService;
+    private final ExpenseImportService expenseImportService;
 
     @Operation(summary = "지출 등록")
     @PostMapping
@@ -37,6 +46,34 @@ public class ExpenseController {
             @Valid @RequestBody ExpenseCreateRequest request
     ) {
         ExpenseResponse response = expenseService.createExpense(userDetails.getUserId(), request);
+        return ApiResponse.success(response);
+    }
+
+    @Operation(
+            summary = "CSV 지출내역 자동 저장",
+            description = """
+                    Wise 또는 Monzo 계좌 명세서 CSV를 업로드하면 헤더로 형식을 자동 판별해
+                    지출성 거래만 골라 저장합니다.
+
+                    - Wise: Amount < 0 이고 State = COMPLETED 인 거래만 저장
+                    - Monzo: Money Out이 있거나 Amount < 0인 거래만 저장
+                    - 입금·충전·취소 거래는 저장하지 않고 excludedCount에 집계됩니다.
+                    - 거래일·통화 기준으로 환율을 조회해 홈 통화 금액으로 저장합니다. DB에 없으면 외부 환율 API를 호출하고,
+                      같은 거래일·통화 조합은 한 번만 조회합니다.
+                    - 환율을 구하지 못한 행은 저장하지 않고 errors에 사유와 함께 담아 반환합니다(다른 정상 행은 계속 처리).
+                    """,
+            requestBody = @RequestBody(
+                    required = true,
+                    content = @Content(mediaType = MediaType.MULTIPART_FORM_DATA_VALUE)
+            )
+    )
+    @PostMapping(value = "/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ApiResponse<ExpenseImportResponse> importExpenses(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @Parameter(description = "Wise 또는 Monzo CSV 파일", schema = @Schema(type = "string", format = "binary"))
+            @RequestPart("file") MultipartFile file
+    ) {
+        ExpenseImportResponse response = expenseImportService.importCsv(userDetails.getUserId(), file);
         return ApiResponse.success(response);
     }
 
