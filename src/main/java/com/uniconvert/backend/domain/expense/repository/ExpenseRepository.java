@@ -50,6 +50,7 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
     // 최근 지출 (홈 화면 "최근 지출" 카드용, 2건 정도)
     List<Expense> findTop5ByUser_IdAndDeletedAtIsNullOrderBySpentAtDesc(Long userId);
 
+
     // ★ Report 도메인에서 사용 — 기간 내 지출 원본 리스트 (날짜별 집계는 서비스 레이어에서 처리)
     @Query("""
             SELECT e FROM Expense e
@@ -76,4 +77,5 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
     List<CategoryAmount> findCategoryAmounts(@Param("userId") Long userId,
                                              @Param("startAt") LocalDateTime startAt,
                                              @Param("endAt") LocalDateTime endAt);
+
 }
