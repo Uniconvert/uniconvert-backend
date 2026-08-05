@@ -41,6 +41,9 @@ dependencies {
 
     testCompileOnly 'org.projectlombok:lombok'
     testAnnotationProcessor 'org.projectlombok:lombok'
+
+    // AWS SES
+    implementation 'software.amazon.awssdk:ses:2.25.16'
 }
 
 tasks.named('test') {

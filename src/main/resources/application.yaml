@@ -40,3 +40,10 @@ springdoc:
 ecos:
   api-key: ${ECOS_API_KEY}
   base-url: ${ECOS_BASE_URL:https://ecos.bok.or.kr/api}
+
+aws:
+  ses:
+    access-key: ${AWS_ACCESS_KEY_ID}
+    secret-key: ${AWS_SECRET_ACCESS_KEY}
+    region: ${AWS_REGION:ap-northeast-2}
+    from-email: ${AWS_SES_FROM_EMAIL}

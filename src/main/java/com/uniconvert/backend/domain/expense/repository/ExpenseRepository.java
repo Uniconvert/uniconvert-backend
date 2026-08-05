@@ -1,9 +1,7 @@
 package com.uniconvert.backend.domain.expense.repository;
 
 import com.uniconvert.backend.domain.expense.entity.Expense;
-
 import com.uniconvert.backend.domain.report.dto.response.CategoryAmount;
-
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
