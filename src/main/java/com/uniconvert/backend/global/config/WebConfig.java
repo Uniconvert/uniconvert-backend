@@ -10,9 +10,25 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
-                .allowedOriginPatterns("*")
-                .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
-                .allowedHeaders("*")
-                .allowCredentials(true);
+                .allowedOrigins(
+                        "https://uniconvert.dev",
+                        "http://localhost:3000",
+                        "http://localhost:5173"
+                )
+                .allowedMethods(
+                        "GET",
+                        "POST",
+                        "PUT",
+                        "PATCH",
+                        "DELETE",
+                        "OPTIONS"
+                )
+                .allowedHeaders(
+                        "Authorization",
+                        "Content-Type",
+                        "Accept"
+                )
+                .allowCredentials(true)
+                .maxAge(3600);
     }
 }
