@@ -92,7 +92,7 @@ public class PotService {
 
         Pot pot = Pot.create(
                 user,
-                request.name(),
+                request.name().trim(),
                 normalizeNullableText(request.goalCategory()),
                 request.targetAmount(),
                 request.monthlyAllocation(),
@@ -205,7 +205,9 @@ public class PotService {
         Pot pot = getOwnedPot(userId, potId);
 
         pot.update(
-                request.name(),
+                request.name() == null
+                        ? null
+                        : request.name().trim(),
                 request.goalCategory() == null
                         ? null
                         : normalizeNullableText(

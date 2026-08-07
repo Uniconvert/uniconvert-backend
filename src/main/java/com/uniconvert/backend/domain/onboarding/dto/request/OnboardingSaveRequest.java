@@ -9,27 +9,27 @@ import java.math.BigDecimal;
 
 public record OnboardingSaveRequest(
 
-        @NotBlank(message = "기준 통화를 선택해야 합니다.")
-        @Size(min = 3, max = 3, message = "기준 통화 코드는 3자리여야 합니다.")
+        @NotBlank(message = "{validation.home_currency.required}")
+        @Size(min = 3, max = 3, message = "{validation.home_currency.length3}")
         String homeCurrencyCode,
 
-        @NotBlank(message = "현지 통화를 선택해야 합니다.")
-        @Size(min = 3, max = 3, message = "현지 통화 코드는 3자리여야 합니다.")
+        @NotBlank(message = "{validation.local_currency.required}")
+        @Size(min = 3, max = 3, message = "{validation.local_currency.length3}")
         String localCurrencyCode,
 
-        @NotNull(message = "월 예산을 입력해야 합니다.")
-        @PositiveOrZero(message = "월 예산은 0 이상이어야 합니다.")
+        @NotNull(message = "{validation.budget.required}")
+        @PositiveOrZero(message = "{validation.budget.nonnegative}")
         BigDecimal monthlyLimitHome,
 
-        @NotBlank(message = "시간대를 선택해야 합니다.")
-        @Size(max = 50, message = "시간대는 50자 이하로 입력해야 합니다.")
+        @NotBlank(message = "{validation.timezone.required}")
+        @Size(max = 50, message = "{validation.timezone.max50}")
         String timezone,
 
-        @NotBlank(message = "닉네임을 입력해야 합니다.")
-        @Size(max = 50, message = "닉네임은 50자 이하로 입력해야 합니다.")
+        @NotBlank(message = "{validation.nickname.required}")
+        @Size(max = 20, message = "{validation.nickname.max20}")
         String nickname,
 
-        @Size(max = 500, message = "프로필 이미지 URL은 500자 이하로 입력해야 합니다.")
+        @Size(max = 500, message = "{validation.profile_image.max500}")
         String imageUrl
 ) {
 }

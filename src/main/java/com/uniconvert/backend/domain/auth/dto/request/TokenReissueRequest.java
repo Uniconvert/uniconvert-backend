@@ -4,7 +4,7 @@ import jakarta.validation.constraints.NotBlank;
 
 public record TokenReissueRequest(
 
-        @NotBlank
+        @NotBlank(message = "{validation.refresh_token.required}")
         String refreshToken
 ) {
 }

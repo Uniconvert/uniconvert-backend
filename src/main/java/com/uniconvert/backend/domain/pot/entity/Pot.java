@@ -26,7 +26,7 @@ public class Pot {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(name = "name", nullable = false, length = 255)
+    @Column(name = "name", nullable = false, length = 30)
     private String name;
 
     @Column(name = "goal_category", length = 30)

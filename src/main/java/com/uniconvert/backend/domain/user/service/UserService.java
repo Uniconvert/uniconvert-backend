@@ -24,8 +24,8 @@ public class UserService {
     public UserMeResponse updateMyInfo(Long userId, UserUpdateRequest request) {
         User user = findUser(userId);
 
-        if (request.nickname() != null && !request.nickname().isBlank()) {
-            user.updateNickname(request.nickname());
+        if (request.nickname() != null) {
+            user.updateNickname(request.nickname().trim());
         }
 
         if (request.imageUrl() != null && !request.imageUrl().isBlank()) {
