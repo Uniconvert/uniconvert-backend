@@ -14,10 +14,10 @@ public record PotCreateRequest(
                 description = "Pot 이름",
                 example = "유럽 여행"
         )
-        @NotBlank(message = "Pot 이름은 필수입니다.")
+        @NotBlank(message = "{validation.pot.name.required}")
         @Size(
-                max = 255,
-                message = "Pot 이름은 255자 이하여야 합니다."
+                max = 30,
+                message = "{validation.pot.name.max30}"
         )
         String name,
 
@@ -27,7 +27,7 @@ public record PotCreateRequest(
         )
         @Size(
                 max = 30,
-                message = "목표 대표 카테고리는 30자 이하여야 합니다."
+                message = "{validation.pot.goal_category.max30}"
         )
         String goalCategory,
 
@@ -35,16 +35,16 @@ public record PotCreateRequest(
                 description = "Pot의 최종 목표 금액",
                 example = "3000000"
         )
-        @NotNull(message = "목표 금액은 필수입니다.")
-        @PositiveOrZero(message = "목표 금액은 0원 이상이어야 합니다.")
+        @NotNull(message = "{validation.pot.target.required}")
+        @PositiveOrZero(message = "{validation.pot.target.nonnegative}")
         BigDecimal targetAmount,
 
         @Schema(
                 description = "매월 Pot에 저축할 계획 금액",
                 example = "300000"
         )
-        @NotNull(message = "월 저축 계획 금액은 필수입니다.")
-        @PositiveOrZero(message = "월 저축 계획 금액은 0원 이상이어야 합니다.")
+        @NotNull(message = "{validation.pot.monthly.required}")
+        @PositiveOrZero(message = "{validation.pot.monthly.nonnegative}")
         BigDecimal monthlyAllocation,
 
         @Schema(

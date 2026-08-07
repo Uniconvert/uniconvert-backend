@@ -2,6 +2,9 @@ package com.uniconvert.backend.global.uni.service;
 
 import com.uniconvert.backend.global.uni.dto.UniMessageResponse;
 import com.uniconvert.backend.global.uni.enums.UniMessageType;
+import lombok.RequiredArgsConstructor;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -12,7 +15,10 @@ import java.util.List;
 import java.util.Locale;
 
 @Component
+@RequiredArgsConstructor
 public class UniInsightMessageFactory {
+
+    private final MessageSource messageSource;
 
     public List<UniMessageResponse> createExpenseInsights(
             BigDecimal todayExpense,
@@ -27,10 +33,8 @@ public class UniInsightMessageFactory {
             insights.add(
                     insight(
                             "EXPENSE_INSIGHT_TODAY",
-                            "오늘 "
-                                    + symbol
-                                    + formatMoney(todayExpense)
-                                    + " 사용했어요."
+                            symbol,
+                            formatMoney(todayExpense)
                     )
             );
         }
@@ -39,9 +43,7 @@ public class UniInsightMessageFactory {
             insights.add(
                     insight(
                             "EXPENSE_INSIGHT_TOP_CATEGORY",
-                            "이번 달 가장 많이 지출한 항목은 "
-                                    + topCategory
-                                    + "예요."
+                            topCategory
                     )
             );
         }
@@ -50,10 +52,8 @@ public class UniInsightMessageFactory {
             insights.add(
                     insight(
                             "EXPENSE_INSIGHT_REMAINING_BUDGET",
-                            "이번 달 사용 가능 금액은 "
-                                    + symbol
-                                    + formatMoney(remainingBudget)
-                                    + " 남아 있어요."
+                            symbol,
+                            formatMoney(remainingBudget)
                     )
             );
         }
@@ -86,11 +86,9 @@ public class UniInsightMessageFactory {
             insights.add(
                     insight(
                             "POTS_INSIGHT_PROGRESS",
-                            potName
-                                    + " Pot은 목표의 "
-                                    + progress.stripTrailingZeros()
+                            potName,
+                            progress.stripTrailingZeros()
                                     .toPlainString()
-                                    + "%까지 모였어요."
                     )
             );
 
@@ -100,10 +98,8 @@ public class UniInsightMessageFactory {
             insights.add(
                     insight(
                             "POTS_INSIGHT_REMAINING",
-                            "목표까지 "
-                                    + symbol
-                                    + formatMoney(remaining)
-                                    + " 남아 있어요."
+                            symbol,
+                            formatMoney(remaining)
                     )
             );
         }
@@ -112,10 +108,8 @@ public class UniInsightMessageFactory {
             insights.add(
                     insight(
                             "POTS_INSIGHT_THIS_MONTH",
-                            "이번 달에는 "
-                                    + symbol
-                                    + formatMoney(thisMonthAmount)
-                                    + " 배정했어요."
+                            symbol,
+                            formatMoney(thisMonthAmount)
                     )
             );
         }
@@ -136,9 +130,7 @@ public class UniInsightMessageFactory {
             insights.add(
                     insight(
                             "REPORT_INSIGHT_INCREASE",
-                            "오늘 지출이 어제보다 "
-                                    + formatPercent(changeRate.abs())
-                                    + "% 늘었어요."
+                            formatPercent(changeRate.abs())
                     )
             );
         } else if (changeRate != null
@@ -147,9 +139,7 @@ public class UniInsightMessageFactory {
             insights.add(
                     insight(
                             "REPORT_INSIGHT_DECREASE",
-                            "오늘 지출이 어제보다 "
-                                    + formatPercent(changeRate.abs())
-                                    + "% 줄었어요."
+                            formatPercent(changeRate.abs())
                     )
             );
         }
@@ -160,9 +150,7 @@ public class UniInsightMessageFactory {
             insights.add(
                     insight(
                             "REPORT_INSIGHT_WEEKLY_MAX",
-                            "이번 주에는 "
-                                    + weeklyMaxDate
-                                    + "에 가장 많이 지출했어요."
+                            weeklyMaxDate
                     )
             );
         }
@@ -180,9 +168,7 @@ public class UniInsightMessageFactory {
         return List.of(
                 insight(
                         "MEMO_INSIGHT_COUNT",
-                        "지금까지 남겨둔 지출 메모가 "
-                                + memoCount
-                                + "개 있어요."
+                        memoCount
                 )
         );
     }
@@ -195,33 +181,50 @@ public class UniInsightMessageFactory {
             return List.of();
         }
 
-        String direction =
+        String direction = getMessage(
                 rateChangePercent.signum() > 0
-                        ? "올랐어요"
-                        : "내렸어요";
+                        ? "CALCULATOR_DIRECTION_UP"
+                        : "CALCULATOR_DIRECTION_DOWN"
+        );
 
         return List.of(
                 insight(
                         "CALCULATOR_INSIGHT_RATE_CHANGE",
-                        "오늘 환율이 전일보다 "
-                                + formatPercent(
-                                rateChangePercent.abs()
-                        )
-                                + "% "
-                                + direction
-                                + ". 계산할 때 참고해주세요."
+                        formatPercent(rateChangePercent.abs()),
+                        direction
                 )
         );
     }
 
     private UniMessageResponse insight(
             String key,
-            String message
+            Object... args
     ) {
         return new UniMessageResponse(
                 key,
-                message,
+                getMessage(key, args),
                 UniMessageType.INSIGHT
+        );
+    }
+
+    private String getMessage(
+            String key,
+            Object... args
+    ) {
+        Locale locale = LocaleContextHolder.getLocale();
+
+        String koreanFallback = messageSource.getMessage(
+                key,
+                args,
+                key,
+                Locale.KOREAN
+        );
+
+        return messageSource.getMessage(
+                key,
+                args,
+                koreanFallback,
+                locale
         );
     }
 

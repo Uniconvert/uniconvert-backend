@@ -20,10 +20,10 @@ public record PotAllocationUpsertRequest(
                 example = "2026-08",
                 requiredMode = Schema.RequiredMode.REQUIRED
         )
-        @NotBlank(message = "배정 월은 필수입니다.")
+        @NotBlank(message = "{validation.pot.allocation.month.required}")
         @Pattern(
                 regexp = "^\\d{4}-(0[1-9]|1[0-2])$",
-                message = "배정 월은 YYYY-MM 형식이어야 합니다."
+                message = "{validation.pot.allocation.month.format}"
         )
         String yearMonth,
 
@@ -36,8 +36,8 @@ public record PotAllocationUpsertRequest(
                 example = "300000",
                 requiredMode = Schema.RequiredMode.REQUIRED
         )
-        @NotNull(message = "배정 금액은 필수입니다.")
-        @PositiveOrZero(message = "배정 금액은 0원 이상이어야 합니다.")
+        @NotNull(message = "{validation.pot.allocation.amount.required}")
+        @PositiveOrZero(message = "{validation.pot.allocation.amount.nonnegative}")
         BigDecimal amount
 ) {
 }

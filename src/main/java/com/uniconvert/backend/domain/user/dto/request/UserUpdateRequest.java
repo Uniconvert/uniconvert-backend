@@ -1,13 +1,15 @@
 package com.uniconvert.backend.domain.user.dto.request;
 
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 public record UserUpdateRequest(
 
-        @Size(max = 50, message = "닉네임은 50자 이하로 입력해야 합니다.")
+        @Size(max = 20, message = "{validation.nickname.max20}")
+        @Pattern(regexp = ".*\\S.*", flags = Pattern.Flag.DOTALL, message = "{validation.nickname.required}")
         String nickname,
 
-        @Size(max = 500, message = "프로필 이미지 URL은 500자 이하로 입력해야 합니다.")
+        @Size(max = 500, message = "{validation.profile_image.max500}")
         String imageUrl
 ) {
 }

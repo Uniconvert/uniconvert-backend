@@ -2,6 +2,7 @@ package com.uniconvert.backend.domain.pot.dto.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 
@@ -15,9 +16,12 @@ public record PotUpdateRequest(
                 example = "유럽 여행 경비"
         )
         @Size(
-                min = 1,
-                max = 255,
-                message = "Pot 이름은 1자 이상 255자 이하여야 합니다."
+                max = 30,
+                message = "{validation.pot.name.max30}"
+        )
+        @Pattern(
+                regexp = ".*\\S.*",
+                message = "{validation.pot.name.required}"
         )
         String name,
 
@@ -27,7 +31,7 @@ public record PotUpdateRequest(
         )
         @Size(
                 max = 30,
-                message = "목표 카테고리는 30자를 초과할 수 없습니다."
+                message = "{validation.pot.goal_category.max30}"
         )
         String goalCategory,
 
@@ -38,7 +42,7 @@ public record PotUpdateRequest(
         @DecimalMin(
                 value = "0.0",
                 inclusive = false,
-                message = "목표 금액은 0보다 커야 합니다."
+                message = "{validation.pot.target.positive}"
         )
         BigDecimal targetAmount,
 
@@ -48,7 +52,7 @@ public record PotUpdateRequest(
         )
         @DecimalMin(
                 value = "0.0",
-                message = "월 배정 예정 금액은 0 이상이어야 합니다."
+                message = "{validation.pot.monthly.nonnegative}"
         )
         BigDecimal monthlyAllocation,
 
@@ -56,7 +60,7 @@ public record PotUpdateRequest(
                 description = "변경할 화면 표시 순서. 0 이상의 정수를 입력합니다.",
                 example = "1"
         )
-        @PositiveOrZero(message = "표시 순서는 0 이상이어야 합니다.")
+        @PositiveOrZero(message = "{validation.pot.display_order.nonnegative}")
         Long displayOrder
 ) {
 }
