@@ -25,8 +25,7 @@ public class Budget extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    // 컬럼명은 id, 응답 필드명은 budgetId 유지 (BudgetResponse 계약 안 건드림)
-    @Column(name = "id")
+    @Column(name = "budget_id")
     private Long budgetId;
 
     @Column(name = "year_month", nullable = false, length = 7)
