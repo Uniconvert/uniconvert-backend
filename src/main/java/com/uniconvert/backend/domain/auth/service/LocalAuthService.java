@@ -13,13 +13,12 @@ import com.uniconvert.backend.domain.user.enums.UserStatus;
 import com.uniconvert.backend.domain.user.repository.UserRepository;
 import com.uniconvert.backend.global.exception.CustomException;
 import com.uniconvert.backend.global.exception.ErrorCode;
+import java.time.LocalDateTime;
+import java.util.Locale;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDateTime;
-import java.util.Locale;
 
 @Service
 @RequiredArgsConstructor
@@ -29,32 +28,14 @@ public class LocalAuthService {
     private final LocalCredentialRepository localCredentialRepository;
     private final TokenService tokenService;
     private final PasswordEncoder passwordEncoder;
-    private final EmailVerificationService emailVerificationService;
     private final LoginAttemptService loginAttemptService;
 
     @Transactional
-    public SignUpResult signUp(LocalSignUpRequest request) {
+    public LoginResponse signUp(LocalSignUpRequest request) {
         String normalizedEmail = normalizeEmail(request.email());
 
-        User existingUser = userRepository.findByEmail(normalizedEmail).orElse(null);
-        if (existingUser != null) {
-            LocalCredential existingCredential = localCredentialRepository.findByUser(existingUser)
-                    .orElseThrow(() -> new CustomException(ErrorCode.INVALID_REQUEST));
-
-            if (existingCredential.isEmailVerified()) {
-                throw new CustomException(ErrorCode.EMAIL_ALREADY_REGISTERED);
-            }
-
-            emailVerificationService.resend(existingUser);
-
-            LoginResponse response = new LoginResponse(
-                    existingUser.getUserId(),
-                    existingUser.getEmail(),
-                    existingUser.getNickname(),
-                    null,
-                    null
-            );
-            return SignUpResult.reusedUnverified(response);
+        if (userRepository.findByEmail(normalizedEmail).isPresent()) {
+            throw new CustomException(ErrorCode.EMAIL_ALREADY_REGISTERED);
         }
 
         String normalizedNickname = request.nickname().trim();
@@ -70,25 +51,24 @@ public class LocalAuthService {
         LocalCredential credential = LocalCredential.builder()
                 .user(savedUser)
                 .passwordHash(passwordEncoder.encode(request.password()))
-                .isEmailVerified(false)
+                .isEmailVerified(true)
                 .failedLoginCount((byte) 0)
                 .passwordChangedAt(LocalDateTime.now())
                 .build();
 
         localCredentialRepository.save(credential);
-        emailVerificationService.issueInitial(savedUser);
 
         String accessToken = tokenService.issueAccessToken(savedUser);
         String refreshToken = tokenService.issueRefreshToken(savedUser);
 
-        LoginResponse response = new LoginResponse(
+        return new LoginResponse(
                 savedUser.getUserId(),
                 savedUser.getEmail(),
                 savedUser.getNickname(),
+                savedUser.isOnboardingCompleted(),
                 accessToken,
                 refreshToken
         );
-        return SignUpResult.created(response);
     }
 
     @Transactional
@@ -100,10 +80,6 @@ public class LocalAuthService {
 
         LocalCredential credential = localCredentialRepository.findByUser(user)
                 .orElseThrow(() -> new CustomException(ErrorCode.LOGIN_INVALID_CREDENTIALS));
-
-        if (!credential.isEmailVerified()) {
-            throw new CustomException(ErrorCode.EMAIL_VERIFICATION_REQUIRED);
-        }
 
         if (!passwordEncoder.matches(request.password(), credential.getPasswordHash())) {
             int failedCount = loginAttemptService.recordFailure(credential.getLocalCredentialId());
@@ -124,6 +100,7 @@ public class LocalAuthService {
                 user.getUserId(),
                 user.getEmail(),
                 user.getNickname(),
+                user.isOnboardingCompleted(),
                 accessToken,
                 refreshToken
         );
@@ -143,6 +120,7 @@ public class LocalAuthService {
                 user.getUserId(),
                 user.getEmail(),
                 user.getNickname(),
+                user.isOnboardingCompleted(),
                 newAccessToken,
                 newRefreshToken
         );

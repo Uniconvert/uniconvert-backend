@@ -4,6 +4,7 @@ public record LoginResponse(
         Long userId,
         String email,
         String nickname,
+        boolean onboardingCompleted,
         String accessToken,
         String refreshToken
 ) {
