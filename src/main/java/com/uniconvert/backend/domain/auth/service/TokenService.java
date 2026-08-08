@@ -36,6 +36,7 @@ public class TokenService {
                 user.getUserId(),
                 user.getEmail(),
                 user.getNickname(),
+                user.isOnboardingCompleted(),
                 accessToken,
                 refreshToken
         );

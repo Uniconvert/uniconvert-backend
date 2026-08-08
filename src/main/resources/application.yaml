@@ -43,11 +43,7 @@ ecos:
 
 aws:
   ses:
-    enabled: ${AWS_SES_ENABLED:false}
     access-key: ${AWS_ACCESS_KEY_ID}
     secret-key: ${AWS_SECRET_ACCESS_KEY}
     region: ${AWS_REGION:ap-northeast-2}
-    from-email: ${AWS_SES_FROM_EMAIL:noreply@uniconvert.dev}
-
-app:
-  email-verification-url: ${EMAIL_VERIFICATION_URL:http://localhost:5173/email-verification}
+    from-email: ${AWS_SES_FROM_EMAIL}
