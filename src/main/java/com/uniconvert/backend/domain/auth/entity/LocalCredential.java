@@ -56,10 +56,6 @@ public class LocalCredential {
     @JoinColumn(name = "user_id", nullable = false, unique = true)
     private User user;
 
-    public void verifyEmail() {
-        this.isEmailVerified = true;
-    }
-
     public int increaseFailedLoginCount() {
         int currentCount = failedLoginCount == null ? 0 : failedLoginCount;
         int nextCount = Math.min(currentCount + 1, 3);
