@@ -17,7 +17,7 @@ public record ExpenseImportResponse(
         @Schema(description = "입금·충전·취소 등 지출이 아니라서 제외된 행 수", example = "6")
         int excludedCount,
 
-        @Schema(description = "환율을 구하지 못해 저장하지 않은 행 수", example = "1")
+        @Schema(description = "저장하지 못한 행 수 (환율 조회 실패 또는 행 형식 오류)", example = "1")
         int errorCount,
 
         @Schema(description = "오류로 분류된 행의 상세 사유 목록")

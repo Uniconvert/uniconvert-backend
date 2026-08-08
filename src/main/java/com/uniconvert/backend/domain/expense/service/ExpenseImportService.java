@@ -17,6 +17,8 @@ import com.uniconvert.backend.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -44,6 +46,7 @@ public class ExpenseImportService {
     private final UserRepository userRepository;
     private final ExchangeRateService exchangeRateService;
     private final List<CsvTransactionParser> csvTransactionParsers;
+    private final MessageSource messageSource;
 
     // 환율 캐시 키 — 같은 통화·같은 거래일 행은 exchangeRateService를 딱 한 번만 호출한다
     private record RateKey(String currency, LocalDate date) {
@@ -88,6 +91,10 @@ public class ExpenseImportService {
 
         List<Expense> toSave = new ArrayList<>();
         List<ExpenseImportErrorDetail> errors = new ArrayList<>();
+
+        for (int rowNumber : parseResult.invalidRowNumbers()) {
+            errors.add(new ExpenseImportErrorDetail(rowNumber, null, message("import.error.invalid_row")));
+        }
 
         for (ParsedCsvTransaction tx : candidates) {
             RateKey key = new RateKey(tx.originalCurrency(), tx.spentAt().toLocalDate());
@@ -145,9 +152,14 @@ public class ExpenseImportService {
                         exchangeRateService.getConversionRate(key.currency(), user.getHomeCurrencyCode(), key.date());
                 resolvedRates.put(key, conversion);
             } catch (RuntimeException e) {
-                failedRates.put(key, e.getMessage());
+                // 미지원 통화든 해당 날짜 환율 부재든 사용자에게는 "환율을 구할 수 없음" 하나로 충분하다
+                failedRates.put(key, message("import.error.rate_unavailable", key.currency(), key.date()));
             }
         }
+    }
+
+    private String message(String key, Object... args) {
+        return messageSource.getMessage(key, args, key, LocaleContextHolder.getLocale());
     }
 
     private User getUser(Long userId) {

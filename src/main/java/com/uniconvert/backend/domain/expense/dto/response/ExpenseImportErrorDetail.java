@@ -9,7 +9,7 @@ public record ExpenseImportErrorDetail(
         @Schema(description = "가맹점명(있는 경우)", example = "Mindwise Ai LLC")
         String merchantName,
 
-        @Schema(description = "실패 사유 — 환율을 구하지 못해 저장하지 않고 오류로 분류한 이유", example = "지원하지 않는 통화입니다: GBP")
+        @Schema(description = "실패 사유 — 요청 로케일(Accept-Language)에 맞춰 반환됩니다", example = "2026-02-26 기준 GBP 환율을 구할 수 없어 저장하지 못했어요")
         String reason
 ) {
 }
