@@ -14,7 +14,7 @@ public class Expense extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "expense_id")
+    @Column(name = "id")
     private Long id;
 
     @Column(name = "original_amount", nullable = false, precision = 19, scale = 4)
