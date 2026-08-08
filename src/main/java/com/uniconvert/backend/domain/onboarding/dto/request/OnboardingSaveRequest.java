@@ -25,10 +25,6 @@ public record OnboardingSaveRequest(
         @Size(max = 50, message = "{validation.timezone.max50}")
         String timezone,
 
-        @NotBlank(message = "{validation.nickname.required}")
-        @Size(max = 20, message = "{validation.nickname.max20}")
-        String nickname,
-
         @Size(max = 500, message = "{validation.profile_image.max500}")
         String imageUrl
 ) {
