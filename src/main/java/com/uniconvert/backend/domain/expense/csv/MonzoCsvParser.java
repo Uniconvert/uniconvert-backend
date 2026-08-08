@@ -1,6 +1,5 @@
 package com.uniconvert.backend.domain.expense.csv;
 
-import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 import org.springframework.stereotype.Component;
 
@@ -9,7 +8,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -36,41 +34,30 @@ public class MonzoCsvParser implements CsvTransactionParser {
     }
 
     @Override
-    public CsvParseResult parse(CSVParser csvParser) {
-        List<ParsedCsvTransaction> transactions = new ArrayList<>();
-        int total = 0;
-        int excluded = 0;
+    public ParsedCsvTransaction parseRow(CSVRecord record, int rowNumber) {
+        BigDecimal amount = parseAmount(record.get("Amount"));
+        String moneyOut = record.get("Money Out").trim();
 
-        for (CSVRecord record : csvParser) {
-            total++;
-
-            BigDecimal amount = parseAmount(record.get("Amount"));
-            String moneyOut = record.get("Money Out").trim();
-
-            if (moneyOut.isEmpty() && amount.signum() >= 0) {
-                excluded++;
-                continue;
-            }
-
-            String currency = record.get("Currency").trim().toUpperCase();
-            String merchantName = record.get("Name").trim();
-            String category = record.isMapped("Category") ? record.get("Category").trim() : null;
-
-            LocalDate date = LocalDate.parse(record.get("Date").trim(), DATE_FORMAT);
-            LocalTime time = LocalTime.parse(record.get("Time").trim(), TIME_FORMAT);
-            LocalDateTime spentAt = LocalDateTime.of(date, time);
-
-            transactions.add(new ParsedCsvTransaction(
-                    total,
-                    spentAt,
-                    merchantName,
-                    amount.abs(),
-                    currency,
-                    CsvCategoryMapper.map(category, merchantName)
-            ));
+        if (moneyOut.isEmpty() && amount.signum() >= 0) {
+            return null;
         }
 
-        return new CsvParseResult(transactions, total, excluded);
+        String currency = record.get("Currency").trim().toUpperCase();
+        String merchantName = record.get("Name").trim();
+        String category = record.isMapped("Category") ? record.get("Category").trim() : null;
+
+        LocalDate date = LocalDate.parse(record.get("Date").trim(), DATE_FORMAT);
+        LocalTime time = LocalTime.parse(record.get("Time").trim(), TIME_FORMAT);
+        LocalDateTime spentAt = LocalDateTime.of(date, time);
+
+        return new ParsedCsvTransaction(
+                rowNumber,
+                spentAt,
+                merchantName,
+                amount.abs(),
+                currency,
+                CsvCategoryMapper.map(category, merchantName)
+        );
     }
 
     private BigDecimal parseAmount(String raw) {

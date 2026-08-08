@@ -1,5 +1,7 @@
 package com.uniconvert.backend.domain.exchange.enums;
 
+import com.uniconvert.backend.global.exception.CustomException;
+import com.uniconvert.backend.global.exception.ErrorCode;
 import lombok.Getter;
 
 import java.math.BigDecimal;
@@ -23,7 +25,8 @@ public enum EcosItemCode {
         try {
             return valueOf(currencyCode);
         } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("지원하지 않는 통화입니다: " + currencyCode);
+            // 사용자에게 그대로 노출되는 문구라 하드코딩 대신 ErrorCode(다국어 메시지 키)로 던진다
+            throw new CustomException(ErrorCode.UNSUPPORTED_CURRENCY);
         }
     }
 }

@@ -9,6 +9,7 @@ import com.uniconvert.backend.global.exception.CustomException;
 import com.uniconvert.backend.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import com.uniconvert.backend.domain.exchange.dto.response.ExchangeRateResponse;
 import com.uniconvert.backend.domain.exchange.dto.response.ConversionResult;
@@ -95,7 +96,10 @@ public class ExchangeRateService {
         throw new CustomException(ErrorCode.NOT_FOUND);
     }
 
-    @Transactional
+    // 환율을 못 구하면 CustomException을 던지는데, 호출자 트랜잭션에 참여한 상태로 던지면
+    // 호출자가 예외를 잡아 계속 진행해도 트랜잭션이 rollback-only로 마킹돼 커밋 시점에 터진다
+    // (CSV 일괄 업로드에서 환율 없는 행 하나 때문에 500이 나던 원인). 별도 트랜잭션으로 분리한다.
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public ConversionResult getConversionRate(String originalCurrency, String homeCurrency, LocalDate targetDate) {
 
         if (originalCurrency.equals(homeCurrency)) {

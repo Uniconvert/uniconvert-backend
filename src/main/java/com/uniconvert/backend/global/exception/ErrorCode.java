@@ -22,7 +22,8 @@ public enum ErrorCode {
     INVALID_CATEGORY(HttpStatus.BAD_REQUEST, "INVALID_CATEGORY", "유효하지 않은 카테고리입니다."),
     BUDGET_NOT_FOUND(HttpStatus.NOT_FOUND, "BUDGET_NOT_FOUND", "해당 월의 예산을 찾을 수 없습니다."),
     EMPTY_FILE(HttpStatus.BAD_REQUEST, "EMPTY_FILE", "업로드한 파일이 비어 있습니다."),
-    INVALID_CSV_FORMAT(HttpStatus.BAD_REQUEST, "INVALID_CSV_FORMAT", "지원하지 않는 CSV 형식입니다. (Wise 또는 Monzo 명세서만 지원합니다)");
+    INVALID_CSV_FORMAT(HttpStatus.BAD_REQUEST, "INVALID_CSV_FORMAT", "지원하지 않는 CSV 형식입니다. (Wise 또는 Monzo 명세서만 지원합니다)"),
+    UNSUPPORTED_CURRENCY(HttpStatus.BAD_REQUEST, "UNSUPPORTED_CURRENCY", "지원하지 않는 통화입니다.");
 
 
     private final HttpStatus status;

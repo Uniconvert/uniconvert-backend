@@ -13,7 +13,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -62,7 +61,9 @@ public class ExpenseController {
                       같은 거래일·통화 조합은 한 번만 조회합니다.
                     - 환율을 구하지 못한 행은 저장하지 않고 errors에 사유와 함께 담아 반환합니다(다른 정상 행은 계속 처리).
                     """,
-            requestBody = @RequestBody(
+            // Swagger 쪽 RequestBody는 FQN으로 쓴다 — import하면 아래 @RequestBody(Spring)를 가려버려서
+            // 요청 본문이 바인딩되지 않고 전부 null이 된다
+            requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
                     required = true,
                     content = @Content(mediaType = MediaType.MULTIPART_FORM_DATA_VALUE)
             )
