@@ -7,6 +7,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 public record ExchangeRateResponse(
+        boolean available,
         String fromCurrency,
         String toCurrency,
         BigDecimal rate,
@@ -22,6 +23,7 @@ public record ExchangeRateResponse(
                                    BigDecimal changeRate,
                                    LocalDate comparedDate) {
         return new ExchangeRateResponse(
+                true,
                 entity.getFromCurrency(),
                 entity.getToCurrency(),
                 entity.getRate(),
@@ -29,5 +31,8 @@ public record ExchangeRateResponse(
                 changeRate,
                 comparedDate
         );
+    }
+    public static ExchangeRateResponse unavailable(String fromCurrency, String toCurrency) {
+        return new ExchangeRateResponse(false, fromCurrency, toCurrency, null, null, null, null);
     }
 }
