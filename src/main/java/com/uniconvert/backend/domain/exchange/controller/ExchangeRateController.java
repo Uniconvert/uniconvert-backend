@@ -21,6 +21,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.data.domain.PageRequest;
 
+import com.uniconvert.backend.global.exception.CustomException;
+import com.uniconvert.backend.global.exception.ErrorCode;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
@@ -35,8 +37,15 @@ public class ExchangeRateController {
     @Operation(summary = "현재 대표 환율 조회")
     @GetMapping("/current")
     public ApiResponse<ExchangeRateResponse> getCurrent(@RequestParam String from, @RequestParam String to) {
-        ExchangeRateResponse response = exchangeRateService.getCurrentRateWithChange(from);
-        return ApiResponse.success(response);
+        try {
+            ExchangeRateResponse response = exchangeRateService.getCurrentRateWithChange(from);
+            return ApiResponse.success(response);
+        } catch (CustomException e) {
+            if (e.getErrorCode() == ErrorCode.NOT_FOUND) {
+                return ApiResponse.success(ExchangeRateResponse.unavailable(from, to));
+            }
+            throw e;
+        }
     }
 
     @Operation(summary = "환율 계산기")
@@ -57,14 +66,22 @@ public class ExchangeRateController {
         """)
             @RequestParam(required = false) LocalDate date
     ) {
-        DailyExchangeRate rate = (date != null)
-                ? exchangeRateService.getRateByDate(from, date)
-                : exchangeRateService.getCurrentRate(from);
+        DailyExchangeRate rate;
+        try {
+            rate = (date != null)
+                    ? exchangeRateService.getRateByDate(from, date)
+                    : exchangeRateService.getCurrentRate(from);
+        } catch (CustomException e) {
+            if (e.getErrorCode() == ErrorCode.NOT_FOUND) {
+                return ApiResponse.success(ExchangeQuoteResponse.unavailable(from, to, amount));
+            }
+            throw e;
+        }
         BigDecimal converted = amount.multiply(rate.getRate()).setScale(2, RoundingMode.HALF_UP);
 
         exchangeRateService.saveQuoteHistory(userDetails.getUserId(), from, to, amount, converted, rate.getRate());
 
-        return ApiResponse.success(new ExchangeQuoteResponse(
+        return ApiResponse.success(ExchangeQuoteResponse.of(
                 from, to, amount, rate.getRate(), converted, rate.getRateDate()
         ));
     }

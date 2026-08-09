@@ -238,13 +238,10 @@ public class ExpenseService {
                 DateTimeFormatter.ofPattern("yyyy-MM")
         );
 
-        Budget budget = budgetRepository
+        BigDecimal monthlyLimit = budgetRepository
                 .findByUserIdAndYearMonth(userId, ym)
-                .orElseThrow(() ->
-                        new CustomException(
-                                ErrorCode.BUDGET_NOT_FOUND
-                        )
-                );
+                .map(Budget::getMonthlyLimitHome)
+                .orElse(BigDecimal.ZERO);
 
         LocalDateTime startAt =
                 yearMonth.atDay(1)
@@ -277,7 +274,7 @@ public class ExpenseService {
             potAllocationTotal = BigDecimal.ZERO;
         }
 
-        return budget.getMonthlyLimitHome()
+        return monthlyLimit
                 .subtract(totalExpense)
                 .subtract(potAllocationTotal);
     }
