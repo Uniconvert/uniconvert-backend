@@ -28,6 +28,12 @@ public record PotResponse(
         String goalCategory,
 
         @Schema(
+                description = "프론트 에셋에서 선택한 Pot 대표 이미지 key",
+                example = "pot_travel_01"
+        )
+        String representativeImageKey,
+
+        @Schema(
                 description = "Pot의 최종 목표 금액",
                 example = "3000000"
         )
@@ -84,6 +90,7 @@ public record PotResponse(
                 example = "2026-08-04T12:10:00"
         )
         LocalDateTime updatedAt
+
 ) {
 
     /**
@@ -106,6 +113,7 @@ public record PotResponse(
                 pot.getId(),
                 pot.getName(),
                 pot.getGoalCategory(),
+                pot.getRepresentativeImageKey(),
                 pot.getTargetAmount(),
                 defaultZero(pot.getSavedAmount()),
                 defaultZero(pot.getMonthlyAllocation()),

@@ -32,6 +32,16 @@ public record PotCreateRequest(
         String goalCategory,
 
         @Schema(
+                description = "프론트 에셋에서 선택한 Pot 대표 이미지 key",
+                example = "pot_travel_01"
+        )
+        @Size(
+                max = 100,
+                message = "{validation.pot.representative_image_key.max100}"
+        )
+        String representativeImageKey,
+
+        @Schema(
                 description = "Pot의 최종 목표 금액",
                 example = "3000000"
         )
@@ -52,5 +62,6 @@ public record PotCreateRequest(
                 example = "1"
         )
         Long displayOrder
+
 ) {
 }

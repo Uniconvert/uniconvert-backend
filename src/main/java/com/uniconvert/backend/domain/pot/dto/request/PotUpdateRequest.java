@@ -36,6 +36,16 @@ public record PotUpdateRequest(
         String goalCategory,
 
         @Schema(
+                description = "변경할 Pot 대표 이미지 key. 변경하지 않을 경우 생략합니다.",
+                example = "pot_travel_01"
+        )
+        @Size(
+                max = 100,
+                message = "{validation.pot.representative_image_key.max100}"
+        )
+        String representativeImageKey,
+
+        @Schema(
                 description = "변경할 최종 목표 금액. 0보다 큰 금액만 입력할 수 있습니다.",
                 example = "3500000"
         )
@@ -62,5 +72,6 @@ public record PotUpdateRequest(
         )
         @PositiveOrZero(message = "{validation.pot.display_order.nonnegative}")
         Long displayOrder
+
 ) {
 }

@@ -25,7 +25,10 @@ public record OnboardingSaveRequest(
         @Size(max = 50, message = "{validation.timezone.max50}")
         String timezone,
 
-        @Size(max = 500, message = "{validation.profile_image.max500}")
-        String imageUrl
+        @Size(max = 100, message = "{validation.profile_image_key.max100}")
+        String profileImageKey,
+
+        @Size(max = 100, message = "{validation.primary_goal.max100}")
+        String primaryGoal
 ) {
 }

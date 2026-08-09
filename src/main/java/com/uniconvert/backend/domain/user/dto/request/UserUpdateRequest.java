@@ -9,7 +9,10 @@ public record UserUpdateRequest(
         @Pattern(regexp = ".*\\S.*", flags = Pattern.Flag.DOTALL, message = "{validation.nickname.required}")
         String nickname,
 
-        @Size(max = 500, message = "{validation.profile_image.max500}")
-        String imageUrl
+        @Size(max = 100, message = "{validation.profile_image_key.max100}")
+        String profileImageKey,
+
+        @Size(max = 100, message = "{validation.primary_goal.max100}")
+        String primaryGoal
 ) {
 }

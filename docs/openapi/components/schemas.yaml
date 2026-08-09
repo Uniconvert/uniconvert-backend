@@ -18,6 +18,7 @@ ApiResponse:
       type: object
       nullable: true
 
+
 PageResponse:
   type: object
   properties:
@@ -31,20 +32,24 @@ PageResponse:
     hasNext:
       type: boolean
 
+
 TermsType:
   type: string
   description: com.uniconvert.backend.domain.auth.enums.TermsType
   enum: [SERVICE, PRIVACY, MARKETING]
+
 
 AuthProvider:
   type: string
   description: com.uniconvert.backend.domain.auth.enums.AuthProvider
   enum: [GOOGLE, APPLE]
 
+
 WalletType:
   type: string
   description: com.uniconvert.backend.domain.wallet.enums.WalletType
   enum: [BANK_ACCOUNT, CASH, POT]
+
 
 MainWalletTransactionType:
   type: string
@@ -53,20 +58,24 @@ MainWalletTransactionType:
     [변경 필요] TRANSFER_OUT은 기존 API 설계 문서에는 언급되지 않은 값입니다.
   enum: [DEPOSIT, MANUAL_SET, TRANSFER_OUT]
 
+
 ExpenseRateMode:
   type: string
   description: com.uniconvert.backend.domain.expense.enums.ExpenseRateMode
   enum: [DAILY_AVERAGE, MANUAL]
+
 
 RateUpdateMode:
   type: string
   description: com.uniconvert.backend.domain.expense.enums.RateUpdateMode (기존 문서의 AUTO/MANUAL과 이름이 다름)
   enum: [KEEP, RECALCULATE]
 
+
 DailyRateStatus:
   type: string
   description: com.uniconvert.backend.domain.exchange.enums.DailyRateStatus
   enum: [PRELIMINARY, FINAL]
+
 
 UserMeResponse:
   type: object
@@ -74,25 +83,49 @@ UserMeResponse:
     userId:
       type: integer
       format: int64
+
+    email:
+      type: string
+
     nickname:
       type: string
       nullable: true
-    email:
-      type: string
-      description: "[변경 필요] 기존 문서 응답에는 없었으나 Figma 설정 화면에 노출됨"
-    imageUrl:
+
+    profileImageKey:
       type: string
       nullable: true
-      description: "[변경 필요] 기존 문서 응답에는 없었으나 Figma 프로필 이미지 업로드 UI 존재"
-    homeCurrency:
+      description: 프론트 에셋에서 선택된 프로필 이미지 key
+      example: profile_03
+
+    primaryGoal:
       type: string
+      nullable: true
+      description: 사용자가 선택한 주요 관리 목표
+      example: SAVE_MORE
+
+    homeCurrencyCode:
+      type: string
+      nullable: true
+
     localCurrencyCode:
       type: string
       nullable: true
+
     timezone:
       type: string
-    isOnboardingCompleted:
+      nullable: true
+
+    onboardingStep:
+      type: integer
+
+    onboardingCompleted:
       type: boolean
+
+    onboardingCompletedAt:
+      type: string
+      format: date-time
+      nullable: true
+
 
 CurrencyResponse:
   type: object
@@ -100,14 +133,19 @@ CurrencyResponse:
     code:
       type: string
       description: ISO 4217 3자리
+
     nameKo:
       type: string
+
     nameEn:
       type: string
+
     symbol:
       type: string
+
     isSupported:
       type: boolean
+
 
 CategoryResponse:
   type: object
@@ -115,13 +153,17 @@ CategoryResponse:
     categoryId:
       type: integer
       format: int64
+
     name:
       type: string
+
     iconKey:
       type: string
       nullable: true
+
     sortOrder:
       type: integer
+
 
 BudgetResponse:
   type: object
@@ -129,10 +171,13 @@ BudgetResponse:
     budgetId:
       type: integer
       format: int64
+
     yearMonth:
       type: string
+
     monthlyLimitHome:
       type: number
+
 
 MainWalletResponse:
   type: object
@@ -140,13 +185,17 @@ MainWalletResponse:
     mainWalletId:
       type: integer
       format: int64
+
     currency:
       type: string
+
     currentBalance:
       type: number
+
     updatedAt:
       type: string
       format: date-time
+
 
 SubWalletResponse:
   type: object
@@ -154,61 +203,154 @@ SubWalletResponse:
     subWalletId:
       type: integer
       format: int64
+
     walletType:
       $ref: '#/WalletType'
+
     name:
       type: string
+
     currency:
       type: string
+
     currentBalance:
       type: number
+
     isLocked:
       type: boolean
+
     targetAmount:
       type: number
       nullable: true
       description: "[추가 필요] Figma Pots 화면 목표 금액"
+
     progressPercent:
       type: number
       nullable: true
       description: "[추가 필요] 목표 대비 현재 저축 진행률"
-    iconKey:
+
+    representativeImageKey:
       type: string
       nullable: true
-      description: "[추가 필요] Pots 대표 이미지/이모티콘"
+      description: 프론트 에셋에서 선택된 Pot 대표 이미지 key
+      example: pot_travel_01
+
+
+# ============================================================================
+# Pot Response
+# ============================================================================
+
+PotResponse:
+  type: object
+  properties:
+    id:
+      type: integer
+      format: int64
+      description: Pot ID
+      example: 1
+
+    name:
+      type: string
+      description: Pot 이름
+      example: 유럽 여행
+
+    goalCategory:
+      type: string
+      nullable: true
+      description: Pot 대표 목표 카테고리
+      example: TRAVEL
+
+    representativeImageKey:
+      type: string
+      nullable: true
+      description: 프론트 에셋에서 선택된 Pot 대표 이미지 key
+      example: pot_travel_01
+
+    targetAmount:
+      type: number
+      description: Pot의 최종 목표 금액
+      example: 3000000
+
+    savedAmount:
+      type: number
+      description: 모든 월의 실제 누적 배정 금액
+      example: 600000
+
+    monthlyAllocation:
+      type: number
+      description: 매월 저축할 계획 금액
+      example: 300000
+
+    thisMonthAmount:
+      type: number
+      description: 사용자 시간대 기준 이번 달 실제 배정 금액
+      example: 300000
+
+    archived:
+      type: boolean
+      description: Pot 보관 여부
+      example: false
+
+    displayOrder:
+      type: integer
+      format: int64
+      description: 화면 표시 순서
+      example: 1
+
+    createdAt:
+      type: string
+      format: date-time
+      description: Pot 생성 시각
+
+    updatedAt:
+      type: string
+      format: date-time
+      description: Pot 최종 수정 시각
+
 
 CurrentExchangeRateResponse:
   type: object
   properties:
     fromCurrency:
       type: string
+
     toCurrency:
       type: string
+
     averageRate:
       type: number
+
     rateDate:
       type: string
       format: date
+
     sampleCount:
       type: integer
+
     status:
       $ref: '#/DailyRateStatus'
+
 
 ExchangeQuoteResponse:
   type: object
   properties:
     amount:
       type: number
+
     appliedRate:
       type: number
+
     convertedAmount:
       type: number
+
     rateDate:
       type: string
       format: date
+
     rateSource:
       type: string
       example: DAILY_AVERAGE
+
 
 ExpenseSummaryResponse:
   type: object
@@ -216,24 +358,32 @@ ExpenseSummaryResponse:
     expenseId:
       type: integer
       format: int64
+
     subWalletId:
       type: integer
       format: int64
+
     categoryId:
       type: integer
       format: int64
+
     merchantName:
       type: string
       nullable: true
+
     originalAmount:
       type: number
+
     originalCurrency:
       type: string
+
     convertedAmountHome:
       type: number
+
     spentAt:
       type: string
       format: date-time
+
 
 ExpenseDetailResponse:
   type: object
@@ -241,21 +391,28 @@ ExpenseDetailResponse:
     expenseId:
       type: integer
       format: int64
+
     subWalletId:
       type: integer
       format: int64
+
     categoryId:
       type: integer
       format: int64
+
     originalAmount:
       type: number
+
     appliedRate:
       type: number
+
     convertedAmountHome:
       type: number
+
     spentAt:
       type: string
       format: date-time
+
 
 ExpenseImportErrorDetail:
   type: object
@@ -264,14 +421,17 @@ ExpenseImportErrorDetail:
       type: integer
       description: CSV 데이터 행 번호(헤더 제외, 1부터 시작)
       example: 12
+
     merchantName:
       type: string
       nullable: true
       example: Mindwise Ai LLC
+
     reason:
       type: string
       description: 환율을 구하지 못해 저장하지 않고 오류로 분류한 이유
       example: "지원하지 않는 통화입니다: GBP"
+
 
 ExpenseImportResponse:
   type: object
@@ -281,66 +441,85 @@ ExpenseImportResponse:
       description: 자동 판별된 CSV 제공자
       enum: [WISE, MONZO]
       example: WISE
+
     totalRowCount:
       type: integer
       description: CSV 데이터 행 총 개수(헤더 제외)
       example: 42
+
     savedCount:
       type: integer
       description: 지출로 저장된 행 수
       example: 30
+
     excludedCount:
       type: integer
       description: 입금·충전·취소 등 지출이 아니라서 제외된 행 수
       example: 6
+
     errorCount:
       type: integer
       description: 환율을 구하지 못해 저장하지 않은 행 수
       example: 1
+
     errors:
       type: array
       items:
         $ref: '#/ExpenseImportErrorDetail'
+
 
 DashboardResponse:
   type: object
   properties:
     homeCurrency:
       type: string
+
     totalAssetHome:
       type: number
+
     lockedAssetHome:
       type: number
+
     availableAmountHome:
       type: number
+
     monthlyBudgetHome:
       type: number
+
     monthlyExpenseHome:
       type: number
+
     budgetUsagePercent:
       type: number
+
     potsAllocatedAmountHome:
       type: number
       nullable: true
       description: "[추가 필요] Figma Pots 요약 영역과 정합성 확보"
+
     characterMessage:
       type: string
       nullable: true
       description: "[확인 필요] 캐릭터 문구를 API로 내려줄지 프론트 정적 배열로 둘지 미확정"
+
     recentExpenses:
       type: array
       items:
         $ref: '#/ExpenseSummaryResponse'
+
 
 MonthlyReportResponse:
   type: object
   properties:
     yearMonth:
       type: string
+
     homeCurrency:
       type: string
+
     totalExpenseHome:
       type: number
+
     dailyExpenses:
       type: array
       items:
@@ -349,12 +528,15 @@ MonthlyReportResponse:
           date:
             type: string
             format: date
+
           amountHome:
             type: number
-    comparedToYesterdayPercent:
-      type: number
-      nullable: true
-      description: "[추가 필요] Figma 리포트 화면의 전일 대비 증감률 문구"
+
+          comparedToYesterdayPercent:
+            type: number
+            nullable: true
+            description: "[추가 필요] Figma 리포트 화면의 전일 대비 증감률 문구"
+
     categoryBreakdown:
       type: array
       nullable: true
@@ -365,20 +547,26 @@ MonthlyReportResponse:
           categoryId:
             type: integer
             format: int64
+
           name:
             type: string
+
           amountHome:
             type: number
+
           percent:
             type: number
+
 
 CategoryReportResponse:
   type: object
   properties:
     yearMonth:
       type: string
+
     totalExpenseHome:
       type: number
+
     categories:
       type: array
       items:
@@ -387,10 +575,12 @@ CategoryReportResponse:
           categoryId:
             type: integer
             format: int64
+
           name:
             type: string
+
           amountHome:
             type: number
+
           percent:
             type: number
-

@@ -32,6 +32,9 @@ public class Pot {
     @Column(name = "goal_category", length = 30)
     private String goalCategory;
 
+    @Column(name = "representative_image_key", length = 100)
+    private String representativeImageKey;
+
     @Column(
             name = "target_amount",
             nullable = false,
@@ -77,6 +80,7 @@ public class Pot {
             User user,
             String name,
             String goalCategory,
+            String representativeImageKey,
             BigDecimal targetAmount,
             BigDecimal monthlyAllocation,
             Long displayOrder
@@ -84,6 +88,8 @@ public class Pot {
         this.user = user;
         this.name = name;
         this.goalCategory = goalCategory;
+        this.representativeImageKey =
+                normalizeNullableText(representativeImageKey);
         this.targetAmount = targetAmount;
         this.savedAmount = BigDecimal.ZERO;
         this.monthlyAllocation = monthlyAllocation;
@@ -95,6 +101,7 @@ public class Pot {
             User user,
             String name,
             String goalCategory,
+            String representativeImageKey,
             BigDecimal targetAmount,
             BigDecimal monthlyAllocation,
             Long displayOrder
@@ -103,6 +110,7 @@ public class Pot {
                 user,
                 name,
                 goalCategory,
+                representativeImageKey,
                 targetAmount,
                 monthlyAllocation,
                 displayOrder
@@ -112,6 +120,7 @@ public class Pot {
     public void update(
             String name,
             String goalCategory,
+            String representativeImageKey,
             BigDecimal targetAmount,
             BigDecimal monthlyAllocation,
             Long displayOrder
@@ -121,7 +130,13 @@ public class Pot {
         }
 
         if (goalCategory != null) {
-            this.goalCategory = goalCategory.isBlank() ? null : goalCategory;
+            this.goalCategory =
+                    goalCategory.isBlank() ? null : goalCategory;
+        }
+
+        if (representativeImageKey != null) {
+            this.representativeImageKey =
+                    normalizeNullableText(representativeImageKey);
         }
 
         if (targetAmount != null) {
@@ -149,7 +164,8 @@ public class Pot {
      * difference = +5만 원
      */
     public void changeSavedAmount(BigDecimal difference) {
-        BigDecimal changedAmount = this.savedAmount.add(difference);
+        BigDecimal changedAmount =
+                this.savedAmount.add(difference);
 
         if (changedAmount.compareTo(BigDecimal.ZERO) < 0) {
             throw new IllegalArgumentException(
@@ -174,6 +190,10 @@ public class Pot {
 
     public String getGoalCategory() {
         return goalCategory;
+    }
+
+    public String getRepresentativeImageKey() {
+        return representativeImageKey;
     }
 
     public BigDecimal getTargetAmount() {
@@ -202,5 +222,13 @@ public class Pot {
 
     public LocalDateTime getUpdatedAt() {
         return updatedAt;
+    }
+
+    private static String normalizeNullableText(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+
+        return value.trim();
     }
 }
