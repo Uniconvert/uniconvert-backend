@@ -59,7 +59,7 @@ public class OnboardingService {
         String yearMonth = YearMonth.now(ZoneId.of(timezone)).toString();
 
         Budget budget = budgetRepository.findByUserIdAndYearMonth(userId, yearMonth)
-                .orElseThrow(() -> new IllegalArgumentException("이번 달 예산 정보가 존재하지 않습니다."));
+                .orElse(null);
 
         return OnboardingResponse.of(user, budget);
     }
