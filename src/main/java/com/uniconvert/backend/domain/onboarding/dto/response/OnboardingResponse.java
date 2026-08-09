@@ -32,8 +32,8 @@ public record OnboardingResponse(
                 user.getOnboardingStep(),
                 user.isOnboardingCompleted(),
                 user.getOnboardingCompletedAt(),
-                budget.getYearMonth(),
-                budget.getMonthlyLimitHome()
+                budget != null ? budget.getYearMonth() : null,
+                budget != null ? budget.getMonthlyLimitHome() : null
         );
     }
 }
