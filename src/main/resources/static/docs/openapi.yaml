@@ -1,14 +1,3 @@
-# ============================================================================
-# GENERATED FILE — 직접 수정하지 마세요.
-#
-# 이 파일은 docs/openapi/ 아래 분할된 소스 파일들을 번들링해서 생성됩니다.
-# 수정은 반드시 docs/openapi/(paths/*.yaml, components/*.yaml)에서 하고,
-# 아래 명령으로 다시 생성하세요.
-#
-#   npx -y @redocly/cli bundle docs/openapi/openapi.yaml -o src/main/resources/static/docs/openapi.yaml
-#
-# ============================================================================
-
 openapi: 3.0.3
 info:
   title: Uniconvert API
@@ -37,7 +26,7 @@ tags:
   - name: Dashboard & Report
     description: 홈 대시보드, 리포트
 paths:
-  /auth/signup:
+  /auth/local/sign-up:
     post:
       tags:
         - Auth
@@ -109,7 +98,7 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '409':
           $ref: '#/components/responses/Conflict'
-  /auth/login:
+  /auth/local/login:
     post:
       tags:
         - Auth
@@ -152,7 +141,7 @@ paths:
                             type: boolean
         '401':
           $ref: '#/components/responses/Unauthorized'
-  /auth/social/google:
+  /auth/social/login:
     post:
       tags:
         - Auth
@@ -269,17 +258,53 @@ paths:
                             type: boolean
         '400':
           $ref: '#/components/responses/BadRequest'
-
+  /auth/token/reissue:
+    post:
+      tags:
+        - Auth
+      summary: Access Token 재발급 | 텐텐
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - refreshToken
+              properties:
+                refreshToken:
+                  type: string
+      responses:
+        '200':
+          description: 재발급 성공
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          accessToken:
+                            type: string
+                          refreshToken:
+                            type: string
+                            description: 회전(rotate) 정책 적용 시 새 Refresh Token
+        '401':
+          $ref: '#/components/responses/Unauthorized'
   /users/me:
     get:
       tags:
         - User & Onboarding
       summary: 내 정보 조회 | 텐텐
       description: |
-        [변경 필요]
-        - Figma 설정 화면에는 이메일("Hamester@gmail.com")과 프로필 이미지 업로드 UI가 표시됩니다.
-          기존 문서 응답(userId, nickname, homeCurrency, isOnboardingCompleted)에는 없는
-          email, imageUrl 필드 추가가 필요합니다. (User 엔티티에는 이미 email, imageUrl 컬럼 존재)
+        사용자 프로필 정보를 조회합니다.
+        프로필 이미지는 프론트에 준비된 에셋 중 선택된 이미지의 key를
+        profileImageKey 필드로 반환합니다.
+        사용자가 선택한 주요 관리 목표는 primaryGoal 필드로 반환합니다.
       responses:
         '200':
           description: 조회 성공
@@ -299,6 +324,11 @@ paths:
         - User & Onboarding
       summary: 내 정보 수정 (설정) | 텐텐
       description: |
+        사용자 프로필 정보를 수정합니다.
+        프로필 이미지는 직접 업로드하지 않고 프론트 에셋 중 선택된 이미지의 key를
+        profileImageKey로 전달합니다.
+        주요 관리 목표는 primaryGoal로 전달합니다.
+
         [확인 필요]
         - Figma 설정 화면에서 timezone을 수정하는 UI를 이번 분석 범위에서 확인하지 못했습니다.
           온보딩에서만 설정하고 이후 변경 불가인지 확인 필요.
@@ -312,6 +342,18 @@ paths:
                 nickname:
                   type: string
                   nullable: true
+                profileImageKey:
+                  type: string
+                  nullable: true
+                  maxLength: 100
+                  description: 프론트 에셋에서 선택된 프로필 이미지 key
+                  example: profile_03
+                primaryGoal:
+                  type: string
+                  nullable: true
+                  maxLength: 100
+                  description: 사용자가 선택한 주요 관리 목표
+                  example: SAVE_MORE
                 homeCurrency:
                   type: string
                   nullable: true
@@ -344,11 +386,13 @@ paths:
         - User & Onboarding
       summary: 온보딩 완료 (통화·예산·메인 지갑 일괄 저장) | 텐텐
       description: |
-        [추가 필요]
-        - Figma "프로필 설정" 화면에는 "내가 가장 관리하고 싶은 목표는 무엇인가요? (복수 선택 가능)"
-          라는 질문과 "여행/취미", "저축", "학업비" 선택지가 있습니다. 기존 요청 필드에는
-          이 목표(goal) 값을 저장할 필드가 없습니다.
-        - 프로필 이미지 업로드 UI("이미지 업로드" 버튼)가 프로필 설정 화면에 있으나 요청 필드에 없음.
+        온보딩 과정에서 사용자가 선택한 프로필 설정 정보를 저장합니다.
+
+        프로필 이미지는 사용자가 직접 업로드하지 않고,
+        프론트에 준비된 에셋 중 선택된 이미지의 key만
+        profileImageKey로 전달합니다.
+
+        사용자가 선택한 주요 관리 목표는 primaryGoal로 저장합니다.
 
         [확인 필요]
         - monthlyBudgetHome, mainWalletInitialBalance를 입력받는 화면을 이번 Figma 분석 범위에서
@@ -386,17 +430,18 @@ paths:
                   type: number
                   nullable: true
                   description: '[확인 필요] 입력 화면 미특정'
-                goals:
-                  type: array
-                  nullable: true
-                  description: '[추가 필요] Figma 프로필 설정 화면의 목표(복수 선택) 값'
-                  items:
-                    type: string
-                    example: TRAVEL_HOBBY
-                profileImageUrl:
+                primaryGoal:
                   type: string
                   nullable: true
-                  description: '[추가 필요] Figma 프로필 이미지 업로드 UI에 대응하는 필드'
+                  maxLength: 100
+                  description: 사용자가 선택한 주요 관리 목표
+                  example: SAVE_MORE
+                profileImageKey:
+                  type: string
+                  nullable: true
+                  maxLength: 100
+                  description: 프론트 에셋에서 선택된 프로필 이미지 key
+                  example: profile_03
       responses:
         '200':
           description: 온보딩 완료
@@ -552,11 +597,11 @@ paths:
       summary: 메인 지갑 입금·수동 잔액 조정 | 텐텐
       description: |
         [변경 필요]
-        - 기존 문서에는 type 값으로 DEPOSIT, MANUAL_SET만 언급되어 있으나, 실제 코드의
-          MainWalletTransactionType enum에는 TRANSFER_OUT 값이 이미 정의되어 있습니다.
-          지갑 간 이체(WalletTransfer 엔티티도 이미 존재) 기능과 연동되는 것으로 보이나,
+        - 기존 문서에는 type 값으로 DEPOSIT, MANUAL_SET만 언급되어 있으나,
+          실제 코드의 MainWalletTransactionType enum에는 TRANSFER_OUT 값이 이미 정의되어 있습니다.
+        - 지갑 간 이체(WalletTransfer 엔티티도 이미 존재) 기능과 연동되는 것으로 보이나,
           기존 문서는 지갑 이체 API 자체를 "지갑 세부 기능 제외"로 스코프아웃했습니다.
-          enum 값과 스코프를 맞출지 확인이 필요합니다.
+        - enum 값과 스코프를 맞출지 확인이 필요합니다.
       requestBody:
         required: true
         content:
@@ -594,62 +639,29 @@ paths:
                             type: number
         '400':
           $ref: '#/components/responses/BadRequest'
-  /sub-wallets:
-    get:
-      tags:
-        - Wallet & Pot
-      summary: 서브 지갑(Pot) 목록 조회 | 텐텐
-      description: |
-        [변경 필요]
-        - Figma "Pots" 화면은 각 Pot마다 목표 금액, 현재 모인 금액, 진행률(%), 대표 이미지/아이콘을
-          카드 형태로 보여줍니다. 기존 응답 필드(subWalletId, walletType, name, currency,
-          currentBalance, isLocked)에는 목표 저축 관련 필드가 전혀 없습니다.
-        - Figma 화면 상단에는 "Pots에 배정된 금액", "사용 가능 금액" 같은 집계 값도 표시되므로
-          목록 API 응답에 요약(summary) 블록 추가가 필요합니다.
-
-        [추가 필요]
-        - targetAmount(목표 금액), currentSavedAmount 또는 progressPercent, iconKey/imageUrl
-      responses:
-        '200':
-          description: 조회 성공
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: '#/components/schemas/ApiResponse'
-                  - type: object
-                    properties:
-                      data:
-                        type: object
-                        properties:
-                          summary:
-                            type: object
-                            description: '[추가 필요] Figma Pots 화면 상단 요약 영역'
-                            properties:
-                              monthlyBudgetHome:
-                                type: number
-                              potsAllocatedAmountHome:
-                                type: number
-                              availableAmountHome:
-                                type: number
-                          subWallets:
-                            type: array
-                            items:
-                              $ref: '#/components/schemas/SubWalletResponse'
+  /pots:
     post:
       tags:
         - Wallet & Pot
-      summary: 서브 지갑(Pot) 생성 | 텐텐
+      summary: Pot 생성 | 텐텐
       description: |
-        [변경 필요]
-        - Figma "Pots_새로 만들기" 화면 필드: "Pots 이름", "목표 금액", "대표 카테고리",
-          "대표 이미지"(이모티콘 선택 또는 직접 업로드) — 기존 요청 필드(walletType, name,
-          currency, currentBalance, categoryId, isLocked)와 다릅니다. currency 입력 UI는
-          이 화면에서 확인되지 않았습니다.
+        새로운 목표 저축 Pot을 생성합니다.
 
-        [확인 필요]
-        - Pot 생성 시 currency를 사용자가 직접 지정하는지, 홈 통화로 고정되는지
-        - "직접 업로드" 이미지의 저장 방식(별도 파일 업로드 API 필요 여부)
+        Pot 대표 이미지는 이미지 파일이나 URL 자체를 백엔드에 저장하지 않습니다.
+        프론트에 준비된 에셋 중 사용자가 선택한 이미지의 key를
+        representativeImageKey로 전달하고 백엔드는 해당 key만 저장합니다.
+
+        입력값:
+        - name: Pot 이름
+        - goalCategory: 대표 목표 카테고리
+        - representativeImageKey: 프론트 에셋에서 선택한 Pot 대표 이미지 key
+        - targetAmount: 최종 목표 금액
+        - monthlyAllocation: 매월 저축할 계획 금액
+        - displayOrder: 화면에 표시할 순서
+
+        생성 직후:
+        - savedAmount는 0입니다.
+        - thisMonthAmount는 0입니다.
       requestBody:
         required: true
         content:
@@ -657,90 +669,159 @@ paths:
             schema:
               type: object
               required:
-                - walletType
                 - name
-                - currentBalance
-                - isLocked
+                - targetAmount
+                - monthlyAllocation
               properties:
-                walletType:
-                  $ref: '#/components/schemas/WalletType'
                 name:
                   type: string
-                currency:
+                  maxLength: 30
+                  description: Pot 이름
+                  example: 유럽 여행
+                goalCategory:
                   type: string
                   nullable: true
-                  description: '[확인 필요] Pot 생성 화면에 통화 선택 UI 미확인'
-                currentBalance:
+                  maxLength: 30
+                  description: Pot 대표 목표 카테고리
+                  example: TRAVEL
+                representativeImageKey:
+                  type: string
+                  nullable: true
+                  maxLength: 100
+                  description: 프론트 에셋에서 선택한 Pot 대표 이미지 key
+                  example: pot_travel_01
+                targetAmount:
                   type: number
-                categoryId:
+                  description: 최종 목표 금액
+                  example: 3000000
+                monthlyAllocation:
+                  type: number
+                  description: 매월 저축할 계획 금액
+                  example: 300000
+                displayOrder:
                   type: integer
                   format: int64
                   nullable: true
-                isLocked:
-                  type: boolean
-                targetAmount:
-                  type: number
-                  nullable: true
-                  description: '[추가 필요] Figma Pots_새로 만들기 화면의 목표 금액'
-                iconKey:
-                  type: string
-                  nullable: true
-                  description: '[추가 필요] 대표 이미지/이모티콘 선택값'
+                  description: Pot 화면 표시 순서
+                  example: 1
       responses:
-        '200':
-          description: 생성 성공
+        '201':
+          description: Pot 생성 성공
           content:
             application/json:
               schema:
-                allOf:
-                  - $ref: '#/components/schemas/ApiResponse'
-                  - type: object
-                    properties:
-                      data:
-                        $ref: '#/components/schemas/SubWalletResponse'
+                $ref: '#/components/schemas/PotResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
-  /sub-wallets/{subWalletId}:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
     get:
       tags:
         - Wallet & Pot
-      summary: 서브 지갑(Pot) 상세 조회 | 텐텐
+      summary: Pot 목록 조회 | 텐텐
       description: |
-        [변경 필요] 목록 API와 동일하게 targetAmount 등 필드 확장 필요.
+        로그인한 사용자의 Pot 목록을 표시 순서대로 조회합니다.
+
+        응답 금액 필드:
+        - targetAmount: 최종 목표 금액
+        - savedAmount: 모든 월의 실제 누적 배정 금액
+        - monthlyAllocation: 매월 저축할 계획 금액
+        - thisMonthAmount: 사용자 시간대 기준 이번 달 실제 배정 금액
+
+        대표 이미지는 representativeImageKey로 반환합니다.
+
+        includeArchived 사용법:
+        - false: 보관되지 않은 Pot만 조회
+        - true: 보관된 Pot을 포함하여 전체 조회
+
+        호출 예시:
+        GET /pots?includeArchived=false
       parameters:
-        - name: subWalletId
-          in: path
-          required: true
+        - name: includeArchived
+          in: query
+          required: false
+          description: 보관된 Pot 포함 여부
           schema:
-            type: integer
-            format: int64
+            type: boolean
+            default: false
+          example: false
       responses:
         '200':
-          description: 조회 성공
+          description: Pot 목록 조회 성공
           content:
             application/json:
               schema:
-                allOf:
-                  - $ref: '#/components/schemas/ApiResponse'
-                  - type: object
-                    properties:
-                      data:
-                        $ref: '#/components/schemas/SubWalletResponse'
+                type: array
+                items:
+                  $ref: '#/components/schemas/PotResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /pots/{potId}:
+    get:
+      tags:
+        - Wallet & Pot
+      summary: Pot 상세 조회 | 텐텐
+      description: |
+        지정한 Pot의 상세 정보를 조회합니다.
+
+        응답에는 다음 정보가 포함됩니다.
+        - Pot 이름
+        - 대표 목표 카테고리
+        - representativeImageKey
+        - 최종 목표 금액
+        - 실제 누적 배정 금액
+        - 월 저축 계획 금액
+        - 이번 달 실제 배정 금액
+        - 보관 여부
+        - 화면 표시 순서
+      parameters:
+        - name: potId
+          in: path
+          required: true
+          description: 조회할 Pot ID
+          schema:
+            type: integer
+            format: int64
+          example: 1
+      responses:
+        '200':
+          description: Pot 상세 조회 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PotResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
     patch:
       tags:
         - Wallet & Pot
-      summary: 서브 지갑(Pot) 수정 | 텐텐
+      summary: Pot 수정 | 텐텐
       description: |
-        [변경 필요] POST /sub-wallets 와 동일한 필드 확장 필요.
+        지정한 Pot의 정보를 수정합니다.
+
+        변경 가능한 값:
+        - name
+        - goalCategory
+        - representativeImageKey
+        - targetAmount
+        - monthlyAllocation
+        - displayOrder
+
+        representativeImageKey는 프론트 에셋에서 선택한
+        Pot 대표 이미지의 key입니다.
+
+        요청에서 생략된 값은 기존 값을 유지합니다.
       parameters:
-        - name: subWalletId
+        - name: potId
           in: path
           required: true
+          description: 수정할 Pot ID
           schema:
             type: integer
             format: int64
+          example: 1
       requestBody:
         content:
           application/json:
@@ -750,43 +831,74 @@ paths:
                 name:
                   type: string
                   nullable: true
-                categoryId:
-                  type: integer
-                  format: int64
+                  maxLength: 30
+                  description: 변경할 Pot 이름
+                  example: 유럽 여행 경비
+                goalCategory:
+                  type: string
                   nullable: true
+                  maxLength: 30
+                  description: 변경할 대표 목표 카테고리
+                  example: TRAVEL
+                representativeImageKey:
+                  type: string
+                  nullable: true
+                  maxLength: 100
+                  description: 변경할 Pot 대표 이미지 key
+                  example: pot_travel_02
                 targetAmount:
                   type: number
                   nullable: true
-                  description: '[추가 필요]'
-                iconKey:
-                  type: string
+                  description: 변경할 최종 목표 금액
+                  example: 3500000
+                monthlyAllocation:
+                  type: number
                   nullable: true
-                  description: '[추가 필요]'
+                  description: 변경할 월 저축 계획 금액
+                  example: 350000
+                displayOrder:
+                  type: integer
+                  format: int64
+                  nullable: true
+                  description: 변경할 화면 표시 순서
+                  example: 1
       responses:
         '200':
-          description: 수정 성공
+          description: Pot 수정 성공
           content:
             application/json:
               schema:
-                allOf:
-                  - $ref: '#/components/schemas/ApiResponse'
-                  - type: object
-                    properties:
-                      data:
-                        $ref: '#/components/schemas/SubWalletResponse'
+                $ref: '#/components/schemas/PotResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
-  /sub-wallets/{subWalletId}/deposits:
-    post:
+  /pots/{potId}/archive:
+    patch:
       tags:
         - Wallet & Pot
-      summary: Pot 목표 금액 추가 납입 | 텐텐
+      summary: Pot 보관 상태 변경 | 텐텐
       description: |
-        [확인 필요]
-        - 메인 지갑에서 차감 후 Pot으로 이체하는 구조인지(WalletTransfer 엔티티 활용),
-          아니면 Pot 잔액만 단순 증가시키는 구조인지
+        지정한 Pot의 보관 상태를 변경합니다.
+
+        - archived=true: Pot을 보관 처리합니다.
+        - archived=false: 보관된 Pot을 다시 활성화합니다.
+        - 보관된 Pot은 기본 GET /pots 조회에서 제외됩니다.
+        - GET /pots?includeArchived=true로 조회하면 보관된 Pot도 확인할 수 있습니다.
+
+        이 API는 Pot을 실제 삭제하지 않습니다.
+        Pot 및 월별 배정 데이터는 DB에 유지됩니다.
+      parameters:
+        - name: potId
+          in: path
+          required: true
+          description: 보관 상태를 변경할 Pot ID
+          schema:
+            type: integer
+            format: int64
+          example: 1
       requestBody:
         required: true
         content:
@@ -794,24 +906,25 @@ paths:
             schema:
               type: object
               required:
-                - amount
+                - archived
               properties:
-                amount:
-                  type: number
-      parameters:
-        - name: subWalletId
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int64
+                archived:
+                  type: boolean
+                  description: Pot 보관 여부
+                  example: true
       responses:
         '200':
-          description: '[확인 필요] 응답 형식 미확정'
+          description: Pot 보관 상태 변경 성공
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponse'
+                $ref: '#/components/schemas/PotResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /exchange-rates/current:
     get:
       tags:
@@ -1527,25 +1640,38 @@ components:
         userId:
           type: integer
           format: int64
+        email:
+          type: string
         nickname:
           type: string
           nullable: true
-        email:
-          type: string
-          description: '[변경 필요] 기존 문서 응답에는 없었으나 Figma 설정 화면에 노출됨'
-        imageUrl:
+        profileImageKey:
           type: string
           nullable: true
-          description: '[변경 필요] 기존 문서 응답에는 없었으나 Figma 프로필 이미지 업로드 UI 존재'
-        homeCurrency:
+          description: 프론트 에셋에서 선택된 프로필 이미지 key
+          example: profile_03
+        primaryGoal:
           type: string
+          nullable: true
+          description: 사용자가 선택한 주요 관리 목표
+          example: SAVE_MORE
+        homeCurrencyCode:
+          type: string
+          nullable: true
         localCurrencyCode:
           type: string
           nullable: true
         timezone:
           type: string
-        isOnboardingCompleted:
+          nullable: true
+        onboardingStep:
+          type: integer
+        onboardingCompleted:
           type: boolean
+        onboardingCompletedAt:
+          type: string
+          format: date-time
+          nullable: true
     CurrencyResponse:
       type: object
       properties:
@@ -1620,10 +1746,66 @@ components:
           type: number
           nullable: true
           description: '[추가 필요] 목표 대비 현재 저축 진행률'
-        iconKey:
+        representativeImageKey:
           type: string
           nullable: true
-          description: '[추가 필요] Pots 대표 이미지/이모티콘'
+          description: 프론트 에셋에서 선택된 Pot 대표 이미지 key
+          example: pot_travel_01
+    PotResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Pot ID
+          example: 1
+        name:
+          type: string
+          description: Pot 이름
+          example: 유럽 여행
+        goalCategory:
+          type: string
+          nullable: true
+          description: Pot 대표 목표 카테고리
+          example: TRAVEL
+        representativeImageKey:
+          type: string
+          nullable: true
+          description: 프론트 에셋에서 선택된 Pot 대표 이미지 key
+          example: pot_travel_01
+        targetAmount:
+          type: number
+          description: Pot의 최종 목표 금액
+          example: 3000000
+        savedAmount:
+          type: number
+          description: 모든 월의 실제 누적 배정 금액
+          example: 600000
+        monthlyAllocation:
+          type: number
+          description: 매월 저축할 계획 금액
+          example: 300000
+        thisMonthAmount:
+          type: number
+          description: 사용자 시간대 기준 이번 달 실제 배정 금액
+          example: 300000
+        archived:
+          type: boolean
+          description: Pot 보관 여부
+          example: false
+        displayOrder:
+          type: integer
+          format: int64
+          description: 화면 표시 순서
+          example: 1
+        createdAt:
+          type: string
+          format: date-time
+          description: Pot 생성 시각
+        updatedAt:
+          type: string
+          format: date-time
+          description: Pot 최종 수정 시각
     CurrentExchangeRateResponse:
       type: object
       properties:
@@ -1793,10 +1975,10 @@ components:
                 format: date
               amountHome:
                 type: number
-        comparedToYesterdayPercent:
-          type: number
-          nullable: true
-          description: '[추가 필요] Figma 리포트 화면의 전일 대비 증감률 문구'
+              comparedToYesterdayPercent:
+                type: number
+                nullable: true
+                description: '[추가 필요] Figma 리포트 화면의 전일 대비 증감률 문구'
         categoryBreakdown:
           type: array
           nullable: true

@@ -24,8 +24,12 @@ public class OnboardingService {
     public OnboardingResponse saveOnboarding(Long userId, OnboardingSaveRequest request) {
         User user = findUser(userId);
 
-        if (request.imageUrl() != null && !request.imageUrl().isBlank()) {
-            user.updateImageUrl(request.imageUrl());
+        if (request.profileImageKey() != null) {
+            user.updateProfileImageKey(request.profileImageKey());
+        }
+
+        if (request.primaryGoal() != null) {
+            user.updatePrimaryGoal(request.primaryGoal());
         }
 
         user.updateOnboardingInfo(

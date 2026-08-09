@@ -39,6 +39,12 @@ public class User {
     @Column(name = "image_url", length = 500)
     private String imageUrl;
 
+    @Column(name = "profile_image_key", length = 100)
+    private String profileImageKey;
+
+    @Column(name = "primary_goal", length = 100)
+    private String primaryGoal;
+
     @Column(name = "onboarding_step", nullable = false)
     private Integer onboardingStep = ONBOARDING_NOT_STARTED;
 
@@ -129,6 +135,14 @@ public class User {
         return imageUrl;
     }
 
+    public String getProfileImageKey() {
+        return profileImageKey;
+    }
+
+    public String getPrimaryGoal() {
+        return primaryGoal;
+    }
+
     public Integer getOnboardingStep() {
         return onboardingStep;
     }
@@ -171,6 +185,22 @@ public class User {
 
     public void updateImageUrl(String imageUrl) {
         this.imageUrl = imageUrl;
+    }
+
+    public void updateProfileImageKey(String profileImageKey) {
+        this.profileImageKey = normalizeNullableText(profileImageKey);
+    }
+
+    public void updatePrimaryGoal(String primaryGoal) {
+        this.primaryGoal = normalizeNullableText(primaryGoal);
+    }
+
+    private String normalizeNullableText(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+
+        return value.trim();
     }
 
     public void updateHomeCurrencyCode(String homeCurrencyCode) {

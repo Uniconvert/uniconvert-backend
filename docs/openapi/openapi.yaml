@@ -94,12 +94,13 @@ paths:
     $ref: './paths/wallet-pot.yaml#/main-wallet'
   /main-wallet/transactions:
     $ref: './paths/wallet-pot.yaml#/main-wallet-transactions'
-  /sub-wallets:
-    $ref: './paths/wallet-pot.yaml#/sub-wallets'
-  /sub-wallets/{subWalletId}:
-    $ref: './paths/wallet-pot.yaml#/sub-wallet-detail'
-  /sub-wallets/{subWalletId}/deposits:
-    $ref: './paths/wallet-pot.yaml#/sub-wallet-deposits'
+
+  /pots:
+    $ref: './paths/wallet-pot.yaml#/pots'
+  /pots/{potId}:
+    $ref: './paths/wallet-pot.yaml#/pot-detail'
+  /pots/{potId}/archive:
+    $ref: './paths/wallet-pot.yaml#/pot-archive'
 
   # Exchange Rate
   /exchange-rates/current:
@@ -183,6 +184,8 @@ components:
       $ref: './components/schemas.yaml#/MainWalletResponse'
     SubWalletResponse:
       $ref: './components/schemas.yaml#/SubWalletResponse'
+    PotResponse:
+      $ref: './components/schemas.yaml#/PotResponse'
     CurrentExchangeRateResponse:
       $ref: './components/schemas.yaml#/CurrentExchangeRateResponse'
     ExchangeQuoteResponse:

@@ -28,8 +28,12 @@ public class UserService {
             user.updateNickname(request.nickname().trim());
         }
 
-        if (request.imageUrl() != null && !request.imageUrl().isBlank()) {
-            user.updateImageUrl(request.imageUrl());
+        if (request.profileImageKey() != null) {
+            user.updateProfileImageKey(request.profileImageKey());
+        }
+
+        if (request.primaryGoal() != null) {
+            user.updatePrimaryGoal(request.primaryGoal());
         }
 
         return UserMeResponse.from(user);

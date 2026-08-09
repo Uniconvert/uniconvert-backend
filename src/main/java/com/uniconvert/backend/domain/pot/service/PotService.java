@@ -17,15 +17,12 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
+import java.time.DateTimeException;
 import java.time.YearMonth;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-
-import java.time.DateTimeException;
-import java.time.YearMonth;
-import java.time.ZoneId;
 
 @Service
 @Transactional(readOnly = true)
@@ -44,6 +41,15 @@ public class PotService {
     private final PotAllocationRepository allocationRepository;
     private final UserRepository userRepository;
 
+    public PotService(
+            PotRepository potRepository,
+            PotAllocationRepository allocationRepository,
+            UserRepository userRepository
+    ) {
+        this.potRepository = potRepository;
+        this.allocationRepository = allocationRepository;
+        this.userRepository = userRepository;
+    }
 
     private String getCurrentYearMonth(User user) {
         String timezone = user.getTimezone();
@@ -66,16 +72,6 @@ public class PotService {
         }
     }
 
-    public PotService(
-            PotRepository potRepository,
-            PotAllocationRepository allocationRepository,
-            UserRepository userRepository
-    ) {
-        this.potRepository = potRepository;
-        this.allocationRepository = allocationRepository;
-        this.userRepository = userRepository;
-    }
-
     @Transactional
     public PotResponse create(
             Long userId,
@@ -94,6 +90,7 @@ public class PotService {
                 user,
                 request.name().trim(),
                 normalizeNullableText(request.goalCategory()),
+                normalizeNullableText(request.representativeImageKey()),
                 request.targetAmount(),
                 request.monthlyAllocation(),
                 displayOrder
@@ -208,11 +205,19 @@ public class PotService {
                 request.name() == null
                         ? null
                         : request.name().trim(),
+
                 request.goalCategory() == null
                         ? null
                         : normalizeNullableText(
                         request.goalCategory()
                 ),
+
+                request.representativeImageKey() == null
+                        ? null
+                        : normalizeNullableText(
+                        request.representativeImageKey()
+                ),
+
                 request.targetAmount(),
                 request.monthlyAllocation(),
                 request.displayOrder()
