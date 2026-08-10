@@ -63,8 +63,10 @@ public class PotController {
                     }
 
                     생성 직후:
-                    - savedAmount는 0원입니다.
-                    - thisMonthAmount는 0원입니다.
+                    - monthlyAllocation 금액이 현재 월 실제 배정 금액으로 자동 등록됩니다.
+                    - savedAmount에 최초 배정 금액이 반영됩니다.
+                    - thisMonthAmount에는 현재 월 배정 금액이 반환됩니다.
+                    - 해당 금액은 총 보유자산(remaining-budget) 계산에서 자동 차감됩니다.
                     """
     )
     @ApiResponses({
