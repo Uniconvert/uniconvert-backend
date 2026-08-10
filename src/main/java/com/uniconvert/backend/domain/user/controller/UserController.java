@@ -12,6 +12,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import com.uniconvert.backend.domain.user.dto.request.EmailReportSettingRequest;
+import com.uniconvert.backend.domain.user.dto.response.EmailReportSettingResponse;
+
 @RestController
 @RequestMapping("/users")
 @RequiredArgsConstructor
@@ -38,6 +41,29 @@ public class UserController {
     ) {
         return ApiResponse.success(
                 userService.updateMyInfo(userDetails.getUserId(), request)
+        );
+    }
+    @Operation(summary = "이메일 리포트 설정 조회")
+    @GetMapping("/me/email-report-setting")
+    public ApiResponse<EmailReportSettingResponse> getEmailReportSetting(
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        return ApiResponse.success(
+                userService.getEmailReportSetting(userDetails.getUserId())
+        );
+    }
+
+    @Operation(
+            summary = "이메일 리포트 설정 변경",
+            description = "온오프, 받는 시간, 발송 주기(DAILY/WEEKLY/MONTHLY)를 설정합니다. enabled=true로 켤 때는 sendTime·frequency가 필수입니다."
+    )
+    @PutMapping("/me/email-report-setting")
+    public ApiResponse<EmailReportSettingResponse> updateEmailReportSetting(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @Valid @RequestBody EmailReportSettingRequest request
+    ) {
+        return ApiResponse.success(
+                userService.updateEmailReportSetting(userDetails.getUserId(), request)
         );
     }
 }
