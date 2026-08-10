@@ -8,6 +8,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.uniconvert.backend.domain.user.dto.request.EmailReportSettingRequest;
+import com.uniconvert.backend.domain.user.dto.response.EmailReportSettingResponse;
+
 @Service
 @RequiredArgsConstructor
 public class UserService {
@@ -37,6 +40,31 @@ public class UserService {
         }
 
         return UserMeResponse.from(user);
+    }
+
+    @Transactional(readOnly = true)
+    public EmailReportSettingResponse getEmailReportSetting(Long userId) {
+        User user = findUser(userId);
+        return EmailReportSettingResponse.from(user);
+    }
+
+    @Transactional
+    public EmailReportSettingResponse updateEmailReportSetting(Long userId, EmailReportSettingRequest request) {
+        User user = findUser(userId);
+
+        if (Boolean.TRUE.equals(request.enabled())) {
+            if (request.sendTime() == null || request.frequency() == null) {
+                throw new IllegalArgumentException("이메일 리포트를 켜려면 받는 시간과 발송 주기를 함께 입력해야 합니다.");
+            }
+        }
+
+        user.updateEmailReportSetting(
+                request.enabled(),
+                request.sendTime(),
+                request.frequency() != null ? request.frequency().name() : null
+        );
+
+        return EmailReportSettingResponse.from(user);
     }
 
     private User findUser(Long userId) {

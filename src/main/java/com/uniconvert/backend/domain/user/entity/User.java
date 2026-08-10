@@ -3,6 +3,7 @@ package com.uniconvert.backend.domain.user.entity;
 import com.uniconvert.backend.domain.user.enums.UserStatus;
 import jakarta.persistence.*;
 
+import java.time.LocalTime;
 import java.time.LocalDateTime;
 
 @Entity
@@ -66,6 +67,15 @@ public class User {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    @Column(name = "email_report_enabled")
+    private Boolean emailReportEnabled = false;
+
+    @Column(name = "email_report_send_time")
+    private LocalTime emailReportSendTime;
+
+    @Column(name = "email_report_frequency", length = 20)
+    private String emailReportFrequency;
+
     protected User() {
     }
 
@@ -100,6 +110,11 @@ public class User {
         if (this.timezone == null || this.timezone.isBlank()) {
             this.timezone = "Asia/Seoul";
         }
+
+        if (this.emailReportEnabled == null) {
+            this.emailReportEnabled = false;
+        }
+
     }
 
     @PreUpdate
@@ -142,6 +157,12 @@ public class User {
     public String getPrimaryGoal() {
         return primaryGoal;
     }
+
+    public Boolean getEmailReportEnabled() { return emailReportEnabled; }
+
+    public LocalTime getEmailReportSendTime() { return emailReportSendTime; }
+
+    public String getEmailReportFrequency() { return emailReportFrequency; }
 
     public Integer getOnboardingStep() {
         return onboardingStep;
@@ -193,6 +214,12 @@ public class User {
 
     public void updatePrimaryGoal(String primaryGoal) {
         this.primaryGoal = normalizeNullableText(primaryGoal);
+    }
+
+    public void updateEmailReportSetting(boolean enabled, LocalTime sendTime, String frequency) {
+        this.emailReportEnabled = enabled;
+        this.emailReportSendTime = enabled ? sendTime : null;
+        this.emailReportFrequency = enabled ? frequency : null;
     }
 
     private String normalizeNullableText(String value) {
