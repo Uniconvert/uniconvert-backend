@@ -23,6 +23,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+
+import com.uniconvert.backend.domain.expense.dto.response.MemoListItemResponse;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -322,4 +326,37 @@ public class ExpenseService {
                 ? null
                 : merchantName.trim().toLowerCase();
     }
+    // 메모 모아보기 조회
+    @Transactional(readOnly = true)
+    public Page<MemoListItemResponse> getMemos(
+            Long userId,
+            String keyword,
+            String sort,
+            Pageable pageable
+    ) {
+        Sort.Direction direction = "oldest".equalsIgnoreCase(sort)
+                ? Sort.Direction.ASC
+                : Sort.Direction.DESC;
+
+        Pageable sortedPageable = PageRequest.of(
+                pageable.getPageNumber(),
+                pageable.getPageSize(),
+                Sort.by(direction, "spentAt")
+        );
+
+        return expenseRepository
+                .findMemosByFilter(userId, keyword, sortedPageable)
+                .map(MemoListItemResponse::from);
+    }
+
+    // 메모 다중 삭제 — 지출 자체는 유지, memo만 null 처리
+    @Transactional
+    public int deleteMemos(Long userId, List<Long> expenseIds) {
+        long matched = expenseRepository.countDeletableMemos(expenseIds, userId);
+        if (matched == 0) {
+            throw new CustomException(ErrorCode.MEMO_NOT_FOUND);
+        }
+        return expenseRepository.clearMemosByIdsAndUserId(expenseIds, userId);
+    }
+
 }

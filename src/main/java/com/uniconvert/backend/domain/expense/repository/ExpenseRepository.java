@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import org.springframework.data.jpa.repository.Modifying;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -77,5 +78,32 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
     List<CategoryAmount> findCategoryAmounts(@Param("userId") Long userId,
                                              @Param("startAt") LocalDateTime startAt,
                                              @Param("endAt") LocalDateTime endAt);
+    // 메모 모아보기 — 메모 있는 지출만, 키워드 검색 가능 (정렬은 Pageable로 전달)
+    @Query("""
+        SELECT e FROM Expense e
+        WHERE e.user.id = :userId
+          AND e.deletedAt IS NULL
+          AND e.memo IS NOT NULL
+          AND (:keyword IS NULL OR e.memo LIKE CONCAT('%', :keyword, '%'))
+        """)
+    Page<Expense> findMemosByFilter(@Param("userId") Long userId,
+                                    @Param("keyword") String keyword,
+                                    Pageable pageable);
 
+    // 메모 다중 삭제 — 선택한 id 중 본인 소유인 것만 memo를 null로
+    @Modifying
+    @Query("""
+        UPDATE Expense e SET e.memo = null
+        WHERE e.id IN :expenseIds AND e.user.id = :userId
+        """)
+    int clearMemosByIdsAndUserId(@Param("expenseIds") List<Long> expenseIds,
+                                 @Param("userId") Long userId);
+
+    // 삭제 가능한(메모 있는) 지출이 몇 건인지 사전 확인용
+    @Query("""
+        SELECT COUNT(e) FROM Expense e
+        WHERE e.id IN :expenseIds AND e.user.id = :userId
+          AND e.memo IS NOT NULL AND e.deletedAt IS NULL
+        """)
+    long countDeletableMemos(@Param("expenseIds") List<Long> expenseIds, @Param("userId") Long userId);
 }

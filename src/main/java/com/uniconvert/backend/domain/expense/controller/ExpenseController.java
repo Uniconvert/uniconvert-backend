@@ -24,6 +24,9 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+
+import com.uniconvert.backend.domain.expense.dto.request.MemoDeleteRequest;
+import com.uniconvert.backend.domain.expense.dto.response.MemoListItemResponse;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
@@ -141,5 +144,28 @@ public class ExpenseController {
     ) {
         BigDecimal remaining = expenseService.getRemainingBudget(userDetails.getUserId(), YearMonth.parse(yearMonth));
         return ApiResponse.success(remaining);
+    }
+    @Operation(summary = "메모 모아보기 조회", description = "메모가 있는 지출만 조회. keyword로 메모 내용 검색, sort는 latest(기본)/oldest")
+    @GetMapping("/memos")
+    public ApiResponse<Page<MemoListItemResponse>> getMemos(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "latest") String sort,
+            @RequestParam(defaultValue = "0") int page
+    ) {
+        Pageable pageable = PageRequest.of(page, 6);
+        Page<MemoListItemResponse> response =
+                expenseService.getMemos(userDetails.getUserId(), keyword, sort, pageable);
+        return ApiResponse.success(response);
+    }
+
+    @Operation(summary = "메모 다중 삭제", description = "선택한 지출들의 메모만 삭제(null 처리). 지출 내역 자체는 유지됨")
+    @DeleteMapping("/memos")
+    public ApiResponse<Void> deleteMemos(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @Valid @RequestBody MemoDeleteRequest request
+    ) {
+        int deletedCount = expenseService.deleteMemos(userDetails.getUserId(), request.expenseIds());
+        return ApiResponse.success("SUCCESS", deletedCount + "개의 메모가 삭제되었습니다.", null);
     }
 }
