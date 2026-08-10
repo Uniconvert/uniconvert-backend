@@ -15,8 +15,6 @@ public interface PotAllocationRepository
 
     /**
      * 특정 Pot의 특정 월 배정 정보 조회
-     *
-     * 동일한 pot_id + year_month는 UNIQUE이므로 최대 한 건만 조회된다.
      */
     Optional<PotAllocation> findByPot_IdAndYearMonth(
             Long potId,
@@ -32,6 +30,9 @@ public interface PotAllocationRepository
 
     /**
      * 특정 사용자의 특정 월 PotAllocation 전체 조회
+     *
+     * 보관된 Pot의 과거 배정 내역도 확인할 수 있도록
+     * 여기서는 archived 조건을 걸지 않는다.
      */
     @Query("""
             select pa
@@ -47,15 +48,26 @@ public interface PotAllocationRepository
     );
 
     /**
-     * 특정 사용자의 이번 달 전체 Pot 배정 금액 합계
+     * 현재 활성화된 Pot의 이번 달 전체 배정 금액 합계
      *
-     * Pots 화면 상단의 'Pots에 배정된 금액'에 사용한다.
+     * 보관된 Pot은 사용 가능 금액 계산에서 제외한다.
+     *
+     * Pot 보관:
+     * archived=true
+     * -> 합계에서 제외
+     * -> 사용 가능 금액 복구
+     *
+     * Pot 복구:
+     * archived=false
+     * -> 합계에 다시 포함
+     * -> 사용 가능 금액에서 다시 차감
      */
     @Query("""
             select coalesce(sum(pa.amount), 0)
             from PotAllocation pa
             where pa.pot.user.id = :userId
               and pa.yearMonth = :yearMonth
+              and pa.pot.archived = false
             """)
     BigDecimal sumAmountByUserIdAndYearMonth(
             @Param("userId") Long userId,
@@ -63,9 +75,10 @@ public interface PotAllocationRepository
     );
 
     /**
-     * 특정 사용자의 Pot별 이번 달 배정 금액 조회
+     * 특정 사용자의 Pot별 이번 달 실제 배정 금액
      *
-     * GET /pots 응답의 각 Pot에 thisMonthAmount를 넣을 때 사용한다.
+     * includeArchived=true 조회에서도 보관 당시 금액을
+     * 확인할 수 있어야 하므로 archived 조건은 넣지 않는다.
      */
     @Query("""
             select pa.pot.id as potId,
