@@ -17,12 +17,16 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+
+import com.uniconvert.backend.domain.report.dto.response.MonthlyAmount;
+import com.uniconvert.backend.domain.report.dto.response.ReportMonthlyResponse;
+
+import java.time.YearMonth;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
@@ -410,5 +414,72 @@ public class ReportService {
                 total,
                 items
         );
+    }
+
+    /**
+     * 월별 지출 요약
+     *
+     * 기준월(endMonth)부터 과거로 months개월치 지출 합계를 반환
+     * 지출이 없는 달도 0원으로 채움
+     */
+    @Transactional(readOnly = true)
+    public ReportMonthlyResponse getMonthlySummary(
+            Long userId,
+            YearMonth endMonth,
+            int months
+    ) {
+        if (months < 1) {
+            throw new IllegalArgumentException("months는 1 이상이어야 합니다.");
+        }
+
+        YearMonth startMonth = endMonth.minusMonths(months - 1L);
+
+        List<Expense> expenses = expenseRepository.findAllInPeriod(
+                userId,
+                startMonth.atDay(1).atStartOfDay(),
+                endMonth.atEndOfMonth().atTime(23, 59, 59)
+        );
+
+        Map<YearMonth, BigDecimal> amountByMonth = expenses.stream()
+                .collect(Collectors.groupingBy(
+                        expense -> YearMonth.from(expense.getSpentAt().toLocalDate()),
+                        Collectors.reducing(
+                                BigDecimal.ZERO,
+                                Expense::getConvertedAmountHome,
+                                BigDecimal::add
+                        )
+                ));
+
+        List<MonthlyAmount> monthlyAmounts = new ArrayList<>();
+        YearMonth cursor = startMonth;
+        while (!cursor.isAfter(endMonth)) {
+            BigDecimal amount = amountByMonth.getOrDefault(cursor, BigDecimal.ZERO);
+            monthlyAmounts.add(new MonthlyAmount(cursor.toString(), amount));
+            cursor = cursor.plusMonths(1);
+        }
+
+        BigDecimal totalAmount = monthlyAmounts.stream()
+                .map(MonthlyAmount::amount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal changeRate = null;
+        String comparedMonth = null;
+
+        if (months >= 2) {
+            BigDecimal latestAmount = amountByMonth.getOrDefault(endMonth, BigDecimal.ZERO);
+            YearMonth previousMonth = endMonth.minusMonths(1);
+            BigDecimal previousAmount = amountByMonth.getOrDefault(previousMonth, BigDecimal.ZERO);
+
+            if (!previousMonth.isBefore(startMonth) && previousAmount.compareTo(BigDecimal.ZERO) > 0) {
+                changeRate = latestAmount
+                        .subtract(previousAmount)
+                        .divide(previousAmount, 6, RoundingMode.HALF_UP)
+                        .multiply(BigDecimal.valueOf(100))
+                        .setScale(2, RoundingMode.HALF_UP);
+                comparedMonth = previousMonth.toString();
+            }
+        }
+
+        return new ReportMonthlyResponse(totalAmount, monthlyAmounts, changeRate, comparedMonth);
     }
 }

@@ -63,6 +63,33 @@ public class GlobalExceptionHandler {
                 ));
     }
 
+    @ExceptionHandler(java.time.format.DateTimeParseException.class)
+    public ResponseEntity<ApiResponse<Void>> handleDateTimeParseException(
+            java.time.format.DateTimeParseException exception
+    ) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.failure(
+                        ErrorCode.INVALID_REQUEST.getCode(),
+                        messageSource.getMessage(
+                                "validation.request.date.invalid",
+                                null,
+                                "날짜 형식이 올바르지 않습니다. (yyyy-MM 형식, 01~12월 범위로 입력해주세요)",
+                                LocaleContextHolder.getLocale()
+                        )
+                ));
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ApiResponse<Void>> handleIllegalArgumentException(
+            IllegalArgumentException exception
+    ) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.failure(
+                        ErrorCode.INVALID_REQUEST.getCode(),
+                        exception.getMessage()
+                ));
+    }
+
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ApiResponse<Void>> handleHttpMessageNotReadableException(
             HttpMessageNotReadableException exception

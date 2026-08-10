@@ -14,6 +14,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.uniconvert.backend.domain.report.dto.response.ReportMonthlyResponse;
+import java.time.YearMonth;
+
 import java.time.LocalDate;
 
 @RestController
@@ -43,4 +46,18 @@ public class ReportController {
     ) {
         return ApiResponse.success(reportService.getCategoryReport(userDetails.getUserId(), startDate, endDate));
     }
+
+    @Operation(summary = "월별 지출 요약", description = "기준월(endMonth)부터 과거 months개월치 지출 합계. 기본값: 이번 달 기준 7개월")
+    @GetMapping("/monthly")
+    public ApiResponse<ReportMonthlyResponse> getMonthly(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestParam(required = false) String endMonth,
+            @RequestParam(defaultValue = "7") int months
+    ) {
+        YearMonth resolvedEndMonth = (endMonth != null) ? YearMonth.parse(endMonth) : YearMonth.now();
+        ReportMonthlyResponse response =
+                reportService.getMonthlySummary(userDetails.getUserId(), resolvedEndMonth, months);
+        return ApiResponse.success(response);
+    }
+
 }
