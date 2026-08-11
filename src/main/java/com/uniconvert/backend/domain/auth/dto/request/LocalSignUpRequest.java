@@ -13,7 +13,7 @@ public record LocalSignUpRequest(
 
         @NotBlank(message = "{validation.password.required}")
         @Pattern(
-                regexp = "^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d]{8,}$",
+                regexp = "^(?=.*[A-Za-z])(?=.*\\d)\\S{8,}$",
                 message = "{validation.password.policy}"
         )
         String password,
