@@ -40,18 +40,62 @@ public class ExchangeRateService {
     private final QuoteHistoryRepository quoteHistoryRepository;
     private final UserRepository userRepository;
 
+
     @Transactional
-    public ExchangeRateResponse getCurrentRateWithChange(String currencyCode) {
-        DailyExchangeRate entity = getCurrentRate(currencyCode);
+    public ExchangeRateResponse getCurrentRateWithChange(String from, String to) {
+        ConversionResult conversion = getCurrentConversionRate(from, to);
 
         ChangeInfo change = calculateChange(
-                entity.getFromCurrency(),
-                entity.getToCurrency(),
-                entity.getRateDate(),
-                entity.getRate()
+                from,
+                to,
+                conversion.rateDate(),
+                conversion.rate()
         );
 
-        return ExchangeRateResponse.of(entity, change.changeRate(), change.comparedDate());
+        return new ExchangeRateResponse(
+                true,
+                from,
+                to,
+                conversion.rate(),
+                conversion.rateDate(),
+                change.changeRate(),
+                change.comparedDate()
+        );
+    }
+
+    // "현재가" 기준 임의 통화쌍 환율 — KRW를 포함한 어떤 조합이든 지원
+// getConversionRate()와 달리 getCurrentRate()를 써서 휴장일 fallback(가장 최근 저장값) 로직을 그대로 적용
+    @Transactional
+    public ConversionResult getCurrentConversionRate(String from, String to) {
+        if (from.equals(to)) {
+            return new ConversionResult(BigDecimal.ONE, LocalDate.now());
+        }
+
+        if (HOME_CURRENCY.equals(from)) {
+            // KRW -> to : to->KRW 환율의 역수
+            DailyExchangeRate toRate = getCurrentRate(to);
+            BigDecimal inverse = BigDecimal.ONE
+                    .divide(toRate.getRate(), 6, RoundingMode.HALF_UP)
+                    .setScale(4, RoundingMode.HALF_UP);
+            return new ConversionResult(inverse, toRate.getRateDate());
+        }
+
+        if (HOME_CURRENCY.equals(to)) {
+            // from -> KRW : 그대로
+            DailyExchangeRate fromRate = getCurrentRate(from);
+            return new ConversionResult(fromRate.getRate(), fromRate.getRateDate());
+        }
+
+        // 외화 <-> 외화 : KRW를 거쳐 교차환율 계산
+        DailyExchangeRate fromRate = getCurrentRate(from);
+        DailyExchangeRate toRate = getCurrentRate(to);
+        BigDecimal cross = fromRate.getRate()
+                .divide(toRate.getRate(), 6, RoundingMode.HALF_UP)
+                .setScale(4, RoundingMode.HALF_UP);
+        LocalDate rateDate = fromRate.getRateDate().isBefore(toRate.getRateDate())
+                ? fromRate.getRateDate()
+                : toRate.getRateDate();
+        return new ConversionResult(cross, rateDate);
     }
 
     @Transactional

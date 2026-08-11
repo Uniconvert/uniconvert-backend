@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.uniconvert.backend.domain.exchange.dto.response.ConversionResult;
 import com.uniconvert.backend.domain.exchange.dto.response.QuoteHistoryResponse;
 import com.uniconvert.backend.domain.exchange.entity.QuoteHistory;
 import com.uniconvert.backend.global.security.CustomUserDetails;
@@ -38,7 +39,7 @@ public class ExchangeRateController {
     @GetMapping("/current")
     public ApiResponse<ExchangeRateResponse> getCurrent(@RequestParam String from, @RequestParam String to) {
         try {
-            ExchangeRateResponse response = exchangeRateService.getCurrentRateWithChange(from);
+            ExchangeRateResponse response = exchangeRateService.getCurrentRateWithChange(from, to);
             return ApiResponse.success(response);
         } catch (CustomException e) {
             if (e.getErrorCode() == ErrorCode.NOT_FOUND) {
@@ -66,23 +67,22 @@ public class ExchangeRateController {
         """)
             @RequestParam(required = false) LocalDate date
     ) {
-        DailyExchangeRate rate;
+        ConversionResult conversion;
         try {
-            rate = (date != null)
-                    ? exchangeRateService.getRateByDate(from, date)
-                    : exchangeRateService.getCurrentRate(from);
+            LocalDate targetDate = (date != null) ? date : LocalDate.now();
+            conversion = exchangeRateService.getConversionRate(from, to, targetDate);
         } catch (CustomException e) {
             if (e.getErrorCode() == ErrorCode.NOT_FOUND) {
                 return ApiResponse.success(ExchangeQuoteResponse.unavailable(from, to, amount));
             }
             throw e;
         }
-        BigDecimal converted = amount.multiply(rate.getRate()).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal converted = amount.multiply(conversion.rate()).setScale(2, RoundingMode.HALF_UP);
 
-        exchangeRateService.saveQuoteHistory(userDetails.getUserId(), from, to, amount, converted, rate.getRate());
+        exchangeRateService.saveQuoteHistory(userDetails.getUserId(), from, to, amount, converted, conversion.rate());
 
         return ApiResponse.success(ExchangeQuoteResponse.of(
-                from, to, amount, rate.getRate(), converted, rate.getRateDate()
+                from, to, amount, conversion.rate(), converted, conversion.rateDate()
         ));
     }
     @Operation(
