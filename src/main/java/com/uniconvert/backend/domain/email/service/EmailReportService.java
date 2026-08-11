@@ -49,7 +49,8 @@ public class EmailReportService {
     @Transactional(readOnly = true)
     public void sendDailyReport(Long userId) {
         LocalDate today = LocalDate.now();
-        sendPeriodReport(userId, today, today, "오늘 하루 지출을 정리했어요", true);
+        LocalDate chartStart = today.minusDays(6);
+        sendPeriodReport(userId, today, today, chartStart, today, "오늘 하루 지출을 정리했어요", true);
     }
 
     // 스케줄러 WEEKLY용 — 지난주 월~일, 항목 나열 없이 총액+그래프만
@@ -58,20 +59,23 @@ public class EmailReportService {
         LocalDate today = LocalDate.now();
         LocalDate lastMonday = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)).minusWeeks(1);
         LocalDate lastSunday = lastMonday.plusDays(6);
-        sendPeriodReport(userId, lastMonday, lastSunday, "지난 한 주 지출을 정리했어요", false);
+        sendPeriodReport(userId, lastMonday, lastSunday, lastMonday, lastSunday, "지난 한 주 지출을 정리했어요", false);
     }
 
-    // 스케줄러 MONTHLY용 — 지난달 1일~말일, 항목 나열 없이 총액+그래프만
     @Transactional(readOnly = true)
     public void sendMonthlyReport(Long userId) {
         YearMonth lastMonth = YearMonth.now().minusMonths(1);
-        sendPeriodReport(userId, lastMonth.atDay(1), lastMonth.atEndOfMonth(), "지난달 지출을 정리했어요", false);
+        LocalDate start = lastMonth.atDay(1);
+        LocalDate end = lastMonth.atEndOfMonth();
+        sendPeriodReport(userId, start, end, start, end, "지난달 지출을 정리했어요", false);
     }
 
     private void sendPeriodReport(
             Long userId,
-            LocalDate periodStart,
-            LocalDate periodEnd,
+            LocalDate totalStart,
+            LocalDate totalEnd,
+            LocalDate chartStart,
+            LocalDate chartEnd,
             String subtitle,
             boolean includeItemList
     ) {
@@ -79,29 +83,34 @@ public class EmailReportService {
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND));
 
         List<Expense> periodExpenses = expenseRepository.findAllInPeriod(
-                userId, periodStart.atStartOfDay(), periodEnd.atTime(23, 59, 59));
+                userId, totalStart.atStartOfDay(), totalEnd.atTime(23, 59, 59));
 
-        ReportSummaryResponse summary = reportService.getSummary(userId, periodStart, periodEnd);
-        BigDecimal periodTotal = summary.totalAmount();
+        BigDecimal periodTotal = expenseRepository.sumConvertedAmountByPeriod(
+                userId, totalStart.atStartOfDay(), totalEnd.atTime(23, 59, 59));
+        if (periodTotal == null) {
+            periodTotal = BigDecimal.ZERO;
+        }
+
+        // 막대그래프는 총액과 별개 범위로 조회 — 일간 리포트는 최근 7일 컨텍스트를 보여주기 위함
+        ReportSummaryResponse chartSummary = reportService.getSummary(userId, chartStart, chartEnd);
 
         YearMonth currentMonth = YearMonth.now();
         BigDecimal remainingBudget = expenseService.getRemainingBudget(userId, currentMonth);
 
-        // 합계 보조 통화 — 사용자 등록 현지 통화로 환산 (없으면 보조 표시 생략)
         String localCurrency = user.getLocalCurrencyCode();
         BigDecimal periodTotalLocal = null;
         BigDecimal remainingBudgetLocal = null;
         if (localCurrency != null && !localCurrency.isBlank() && !localCurrency.equals(user.getHomeCurrencyCode())) {
             ConversionResult rate = exchangeRateService.getConversionRate(
-                    user.getHomeCurrencyCode(), localCurrency, periodEnd);
+                    user.getHomeCurrencyCode(), localCurrency, totalEnd);
             periodTotalLocal = periodTotal.multiply(rate.rate()).setScale(2, RoundingMode.HALF_UP);
             remainingBudgetLocal = remainingBudget.multiply(rate.rate()).setScale(2, RoundingMode.HALF_UP);
         }
 
-        String html = buildHtml(user, periodEnd, subtitle, periodTotal, periodTotalLocal,
-                remainingBudget, remainingBudgetLocal, periodExpenses, summary.dailyAmounts(),
+        String html = buildHtml(user, totalEnd, subtitle, periodTotal, periodTotalLocal,
+                remainingBudget, remainingBudgetLocal, periodExpenses, chartSummary.dailyAmounts(),
                 localCurrency, includeItemList);
-        String subject = periodEnd.format(DATE_FMT) + " 리포트 — " + subtitle;
+        String subject = totalEnd.format(DATE_FMT) + " 리포트 — " + subtitle;
 
         emailService.sendHtmlEmail(user.getEmail(), subject, html);
     }
@@ -121,73 +130,73 @@ public class EmailReportService {
 
         StringBuilder sb = new StringBuilder();
 
-        // 바깥 wrapper (연한 하늘색 배경)
+        // 바깥 wrapper — 프론트는 그라데이션(#6AADEA→#fff)이지만 이메일 클라이언트 호환을 위해 연한 단색 사용
         sb.append("<table role='presentation' width='100%' cellpadding='0' cellspacing='0' style='background:#eaf1fb;padding:40px 0;'>");
         sb.append("<tr><td align='center'>");
 
-        // 흰 카드
+        // 흰 카드 (emailModalInner에 대응, border-radius: 1.5rem = 24px)
         sb.append("<table role='presentation' width='520' cellpadding='0' cellspacing='0' style='background:#ffffff;border-radius:24px;border:1px solid #dce6f5;font-family:Apple SD Gothic Neo,Malgun Gothic,sans-serif;'>");
         sb.append("<tr><td style='padding:36px;'>");
 
-        // 제목
+        // 헤더 (emailHeader)
         sb.append("<table role='presentation' width='100%' cellpadding='0' cellspacing='0'>");
-        sb.append("<tr><td align='center' style='font-size:20px;font-weight:700;color:#1e2a3a;padding-bottom:4px;'>")
+        sb.append("<tr><td align='center' style='font-size:20px;font-weight:600;color:#3C688E;padding-bottom:8px;'>")
                 .append(referenceDate.format(DATE_FMT)).append(" 리포트</td></tr>");
-        sb.append("<tr><td align='center' style='font-size:14px;color:#a5b1c2;padding-bottom:24px;'>").append(subtitle).append("</td></tr>");
+        sb.append("<tr><td align='center' style='font-size:16px;font-weight:500;color:#A8C1D6;padding-bottom:24px;'>").append(subtitle).append("</td></tr>");
         sb.append("</table>");
 
-        // 총 지출 / 남은 예산
+        // 총 지출 / 남은 예산 (emailSummary → summaryBox)
         sb.append("<table role='presentation' width='100%' cellpadding='0' cellspacing='0'><tr>");
         sb.append("<td width='45%' align='center'>");
-        sb.append("<div style='font-size:13px;color:#a5b1c2;margin-bottom:4px;'>총 지출 금액</div>");
-        sb.append("<div style='font-size:22px;font-weight:700;color:#4a90e2;'>").append(homeSymbol).append(" ").append(format(periodTotal)).append("</div>");
+        sb.append("<div style='font-size:15px;font-weight:500;color:#A3BDD6;margin-bottom:6px;'>총 지출 금액</div>");
+        sb.append("<div style='font-size:22px;font-weight:600;color:#6AADEA;'>").append(homeSymbol).append(" ").append(format(periodTotal)).append("</div>");
         if (periodTotalLocal != null) {
-            sb.append("<div style='font-size:12px;color:#a5b1c2;'>").append(localCurrency).append(" ").append(format(periodTotalLocal)).append("</div>");
+            sb.append("<div style='font-size:13px;color:#A3BDD6;margin-top:2px;'>(").append(localCurrency).append(" ").append(format(periodTotalLocal)).append(")</div>");
         }
         sb.append("</td>");
-        sb.append("<td width='10%' align='center' style='font-size:20px;color:#4a90e2;'>&raquo;</td>");
+        sb.append("<td width='10%' align='center' style='font-size:18px;color:#90b6d9;'>&raquo;</td>");
         sb.append("<td width='45%' align='center'>");
-        sb.append("<div style='font-size:13px;color:#a5b1c2;margin-bottom:4px;'>남은 예산</div>");
-        sb.append("<div style='font-size:22px;font-weight:700;color:#1e2a3a;'>").append(homeSymbol).append(" ").append(format(remainingBudget)).append("</div>");
+        sb.append("<div style='font-size:15px;font-weight:500;color:#A3BDD6;margin-bottom:6px;'>남은 예산</div>");
+        sb.append("<div style='font-size:22px;font-weight:600;color:#3C688E;'>").append(homeSymbol).append(" ").append(format(remainingBudget)).append("</div>");
         if (remainingBudgetLocal != null) {
-            sb.append("<div style='font-size:12px;color:#a5b1c2;'>").append(localCurrency).append(" ").append(format(remainingBudgetLocal)).append("</div>");
+            sb.append("<div style='font-size:13px;color:#A3BDD6;margin-top:2px;'>(").append(localCurrency).append(" ").append(format(remainingBudgetLocal)).append(")</div>");
         }
         sb.append("</td>");
         sb.append("</tr></table>");
 
-        sb.append("<div style='border-top:1px solid #eee;margin:20px 0;'></div>");
+        sb.append("<div style='border-top:1px solid #F0F0F0;margin:24px 0;'></div>");
 
-        // 개별 지출 항목 (일간 리포트에서만 포함)
+        // 지출 내역 (emailListSection → emailTxList)
         if (includeItemList) {
             sb.append("<table role='presentation' width='100%' cellpadding='0' cellspacing='0'>");
-            sb.append("<tr><td style='font-size:15px;font-weight:700;color:#1e2a3a;padding-bottom:12px;'>오늘 지출 내역</td></tr>");
+            sb.append("<tr><td style='font-size:17px;font-weight:500;color:#000000;padding-bottom:20px;'>오늘 지출 내역</td></tr>");
             if (periodExpenses.isEmpty()) {
-                sb.append("<tr><td style='color:#a5b1c2;font-size:13px;'>오늘 등록된 지출이 없습니다.</td></tr>");
+                sb.append("<tr><td style='color:#999999;font-size:14px;text-align:center;padding:16px 0;'>오늘 기록된 지출이 없어요.</td></tr>");
             }
             for (Expense e : periodExpenses) {
-                sb.append("<tr><td style='padding:8px 0;'>");
+                sb.append("<tr><td style='padding-bottom:20px;'>");
                 sb.append("<table role='presentation' width='100%' cellpadding='0' cellspacing='0'><tr>");
-                sb.append("<td width='40' style='padding-right:12px;'>");
-                sb.append("<div style='width:40px;height:40px;background:#f5f6fa;border-radius:10px;text-align:center;line-height:40px;font-size:18px;'>").append(categoryEmoji(e.getCategoryId())).append("</div>");
+                sb.append("<td width='40' style='padding-right:16px;'>");
+                sb.append("<div style='width:40px;height:40px;background:#ffffff;border:1px solid #F0F0F0;border-radius:8px;text-align:center;line-height:40px;font-size:18px;'>").append(categoryEmoji(e.getCategoryId())).append("</div>");
                 sb.append("</td>");
                 sb.append("<td>");
-                sb.append("<div style='font-size:14px;font-weight:600;color:#1e2a3a;'>").append(displayName(e)).append("</div>");
-                sb.append("<div style='font-size:12px;color:#a5b1c2;'>").append(e.getSpentAt().toLocalTime().format(TIME_FMT)).append("</div>");
+                sb.append("<div style='font-size:15px;font-weight:500;color:#222222;'>").append(displayName(e)).append("</div>");
+                sb.append("<div style='font-size:12px;color:#999999;margin-top:3px;'>").append(categoryName(e.getCategoryId())).append(" &bull; ").append(e.getSpentAt().toLocalTime().format(TIME_FMT)).append("</div>");
                 sb.append("</td>");
                 sb.append("<td align='right'>");
-                sb.append("<div style='font-size:14px;font-weight:700;color:#1e2a3a;'>").append(homeSymbol).append(" ").append(format(e.getConvertedAmountHome())).append("</div>");
-                sb.append("<div style='font-size:12px;color:#a5b1c2;'>").append(e.getOriginalCurrency()).append(" ").append(format(e.getOriginalAmount())).append("</div>");
+                sb.append("<div style='font-size:15px;font-weight:500;color:#222222;'>").append(homeSymbol).append(" ").append(format(e.getConvertedAmountHome())).append("</div>");
+                sb.append("<div style='font-size:12px;color:#999999;margin-top:3px;'>").append(e.getOriginalCurrency()).append(" ").append(format(e.getOriginalAmount())).append("</div>");
                 sb.append("</td>");
                 sb.append("</tr></table>");
                 sb.append("</td></tr>");
             }
             sb.append("</table>");
-            sb.append("<div style='border-top:1px solid #eee;margin:20px 0;'></div>");
+            sb.append("<div style='border-top:1px solid #F0F0F0;margin:24px 0;'></div>");
         }
 
-        // 기간별 지출 흐름 (막대그래프) — 일간은 최근 7일 컨텍스트, 주간/월간은 조회 기간 그대로
+        // 지출 흐름 (emailChartSection → emailChart)
         sb.append("<table role='presentation' width='100%' cellpadding='0' cellspacing='0'>");
-        sb.append("<tr><td style='font-size:15px;font-weight:700;color:#1e2a3a;padding-bottom:16px;'>지출 흐름</td></tr>");
+        sb.append("<tr><td style='font-size:17px;font-weight:500;color:#000000;padding-bottom:20px;'>지출 흐름</td></tr>");
         sb.append("<tr><td>");
         sb.append("<table role='presentation' width='100%' cellpadding='0' cellspacing='0'><tr>");
 
@@ -201,10 +210,15 @@ public class EmailReportService {
             boolean isMax = d.date().equals(maxDay);
             int heightPx = Math.max(10, d.amount().multiply(BigDecimal.valueOf(90))
                     .divide(maxAmount, 0, RoundingMode.HALF_UP).intValue());
+            // barMax(#3C688E) > barToday(#6AADEA) > default(#A8C1D6)
             String barColor = isMax ? "#3C688E" : (isReference ? "#6AADEA" : "#A8C1D6");
             sb.append("<td align='center' style='vertical-align:bottom;padding:0 6px;'>");
-            sb.append("<div style='width:32px;height:").append(heightPx).append("px;background:").append(barColor).append(";border-radius:6px;margin:0 auto;'></div>");
-            sb.append("<div style='font-size:12px;color:#ABABAB;margin-top:6px;'>").append(d.date().getDayOfMonth()).append("d</div>");
+            if (isReference) {
+                sb.append("<div style='font-size:11px;color:#6AADEA;background:#eff7ff;border:0.5px solid #6AADEA;border-radius:4px;padding:3px 8px;margin-bottom:6px;white-space:nowrap;'>")
+                        .append(homeSymbol).append(" ").append(format(d.amount())).append("</div>");
+            }
+            sb.append("<div style='width:32px;height:").append(heightPx).append("px;background:").append(barColor).append(";border-radius:6px 6px 0 0;margin:0 auto;'></div>");
+            sb.append("<div style='font-size:12px;color:#ABABAB;margin-top:8px;'>").append(d.date().getDayOfMonth()).append("d</div>");
             sb.append("</td>");
         }
         sb.append("</tr></table>");
