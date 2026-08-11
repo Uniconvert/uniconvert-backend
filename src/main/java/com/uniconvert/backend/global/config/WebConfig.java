@@ -12,6 +12,7 @@ public class WebConfig implements WebMvcConfigurer {
         registry.addMapping("/**")
                 .allowedOrigins(
                         "https://uniconvert.dev",
+                        "https://www.uniconvert.dev",
                         "http://localhost:3000",
                         "http://localhost:5173"
                 )
