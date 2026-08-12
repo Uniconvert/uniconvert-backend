@@ -3,24 +3,25 @@ package com.uniconvert.backend.domain.pot.controller;
 import com.uniconvert.backend.domain.pot.dto.request.PotArchiveRequest;
 import com.uniconvert.backend.domain.pot.dto.request.PotCreateRequest;
 import com.uniconvert.backend.domain.pot.dto.request.PotUpdateRequest;
-import com.uniconvert.backend.domain.pot.dto.response.PotResponse;
-import com.uniconvert.backend.domain.pot.service.PotService;
-import com.uniconvert.backend.global.security.CustomUserDetails;
 import com.uniconvert.backend.domain.pot.dto.response.PotDetailResponse;
 import com.uniconvert.backend.domain.pot.dto.response.PotListResponse;
+import com.uniconvert.backend.domain.pot.dto.response.PotResponse;
+import com.uniconvert.backend.domain.pot.service.PotService;
+import com.uniconvert.backend.global.response.ApiResponse;
+import com.uniconvert.backend.global.security.CustomUserDetails;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+
 import jakarta.validation.Valid;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/pots")
@@ -72,15 +73,15 @@ public class PotController {
                     """
     )
     @ApiResponses({
-            @ApiResponse(
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "201",
                     description = "Pot 생성 성공"
             ),
-            @ApiResponse(
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "400",
                     description = "요청값 검증 실패"
             ),
-            @ApiResponse(
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "401",
                     description = "인증 토큰이 없거나 유효하지 않음"
             )
@@ -125,16 +126,16 @@ public class PotController {
                     """
     )
     @ApiResponses({
-            @ApiResponse(
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "200",
                     description = "Pot 목록 조회 성공"
             ),
-            @ApiResponse(
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "401",
                     description = "인증 토큰이 없거나 유효하지 않음"
             )
     })
-    public ResponseEntity<PotListResponse> getAll(
+    public ApiResponse<PotListResponse> getAll(
             @Parameter(hidden = true)
             @AuthenticationPrincipal
             CustomUserDetails userDetails,
@@ -146,7 +147,7 @@ public class PotController {
             @RequestParam(defaultValue = "false")
             boolean includeArchived
     ) {
-        return ResponseEntity.ok(
+        return ApiResponse.success(
                 potService.getAll(
                         userDetails.getUserId(),
                         includeArchived
@@ -171,15 +172,15 @@ public class PotController {
                     """
     )
     @ApiResponses({
-            @ApiResponse(
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "200",
                     description = "Pot 상세 조회 성공"
             ),
-            @ApiResponse(
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "401",
                     description = "인증 토큰이 없거나 유효하지 않음"
             ),
-            @ApiResponse(
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "404",
                     description = "Pot을 찾을 수 없거나 다른 사용자의 Pot임"
             )
@@ -225,19 +226,19 @@ public class PotController {
                     """
     )
     @ApiResponses({
-            @ApiResponse(
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "200",
                     description = "Pot 수정 성공"
             ),
-            @ApiResponse(
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "400",
                     description = "요청값 검증 실패"
             ),
-            @ApiResponse(
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "401",
                     description = "인증 토큰이 없거나 유효하지 않음"
             ),
-            @ApiResponse(
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "404",
                     description = "Pot을 찾을 수 없거나 다른 사용자의 Pot임"
             )
@@ -288,19 +289,19 @@ public class PotController {
                     """
     )
     @ApiResponses({
-            @ApiResponse(
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "200",
                     description = "Pot 보관 상태 변경 성공"
             ),
-            @ApiResponse(
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "400",
                     description = "요청값 검증 실패"
             ),
-            @ApiResponse(
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "401",
                     description = "인증 토큰이 없거나 유효하지 않음"
             ),
-            @ApiResponse(
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "404",
                     description = "Pot을 찾을 수 없거나 다른 사용자의 Pot임"
             )
