@@ -22,6 +22,7 @@ import com.uniconvert.backend.global.uni.dto.UniMessageResponse;
 import com.uniconvert.backend.global.uni.enums.UniSection;
 import com.uniconvert.backend.global.uni.service.UniInsightMessageFactory;
 import com.uniconvert.backend.global.uni.service.UniMessageService;
+import com.uniconvert.backend.domain.pot.dto.response.PotListResponse;
 
 import java.math.BigDecimal;
 import java.time.DateTimeException;
@@ -153,7 +154,7 @@ public class PotService {
     /**
      * Pot 목록 조회
      */
-    public List<PotResponse> getAll(
+    public PotListResponse getAll(
             Long userId,
             boolean includeArchived
     ) {
@@ -178,8 +179,17 @@ public class PotService {
                             );
         }
 
+        UniMessageBundleResponse uniMessages =
+                uniMessageService.createBundle(
+                        UniSection.POTS,
+                        List.of()
+                );
+
         if (pots.isEmpty()) {
-            return List.of();
+            return new PotListResponse(
+                    List.of(),
+                    uniMessages
+            );
         }
 
         List<PotAmountProjection> monthAmounts =
@@ -199,17 +209,23 @@ public class PotService {
                                                 : BigDecimal.ZERO
                         ));
 
-        return pots.stream()
-                .map(pot ->
-                        PotResponse.from(
-                                pot,
-                                thisMonthAmountMap.getOrDefault(
-                                        pot.getId(),
-                                        BigDecimal.ZERO
+        List<PotResponse> potResponses =
+                pots.stream()
+                        .map(pot ->
+                                PotResponse.from(
+                                        pot,
+                                        thisMonthAmountMap.getOrDefault(
+                                                pot.getId(),
+                                                BigDecimal.ZERO
+                                        )
                                 )
                         )
-                )
-                .toList();
+                        .toList();
+
+        return new PotListResponse(
+                potResponses,
+                uniMessages
+        );
     }
 
     /**

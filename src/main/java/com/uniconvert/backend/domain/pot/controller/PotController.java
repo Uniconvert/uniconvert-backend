@@ -7,6 +7,7 @@ import com.uniconvert.backend.domain.pot.dto.response.PotResponse;
 import com.uniconvert.backend.domain.pot.service.PotService;
 import com.uniconvert.backend.global.security.CustomUserDetails;
 import com.uniconvert.backend.domain.pot.dto.response.PotDetailResponse;
+import com.uniconvert.backend.domain.pot.dto.response.PotListResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -133,7 +134,7 @@ public class PotController {
                     description = "인증 토큰이 없거나 유효하지 않음"
             )
     })
-    public ResponseEntity<List<PotResponse>> getAll(
+    public ResponseEntity<PotListResponse> getAll(
             @Parameter(hidden = true)
             @AuthenticationPrincipal
             CustomUserDetails userDetails,
