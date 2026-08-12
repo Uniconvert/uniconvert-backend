@@ -7,6 +7,7 @@ import com.uniconvert.backend.domain.expense.dto.response.ExpenseListItemRespons
 import com.uniconvert.backend.domain.expense.dto.response.ExpenseResponse;
 import com.uniconvert.backend.domain.expense.service.ExpenseImportService;
 import com.uniconvert.backend.domain.expense.service.ExpenseService;
+import com.uniconvert.backend.domain.expense.dto.response.ExpenseListResponse;
 import com.uniconvert.backend.global.response.ApiResponse;
 import com.uniconvert.backend.global.security.CustomUserDetails;
 import io.swagger.v3.oas.annotations.Operation;
@@ -93,7 +94,7 @@ public class ExpenseController {
 
     @Operation(summary = "지출 목록 조회", description = "필터: 기간(startAt~endAt), 카테고리. page=0부터, size 기본 6")
     @GetMapping
-    public ApiResponse<Page<ExpenseListItemResponse>> getExpenses(
+    public ApiResponse<ExpenseListResponse> getExpenses(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestParam(required = false) LocalDateTime startAt,
             @RequestParam(required = false) LocalDateTime endAt,
@@ -101,8 +102,16 @@ public class ExpenseController {
             @RequestParam(defaultValue = "0") int page
     ) {
         Pageable pageable = PageRequest.of(page, 6);
-        Page<ExpenseListItemResponse> response =
-                expenseService.getExpenses(userDetails.getUserId(), startAt, endAt, categoryId, pageable);
+
+        ExpenseListResponse response =
+                expenseService.getExpenses(
+                        userDetails.getUserId(),
+                        startAt,
+                        endAt,
+                        categoryId,
+                        pageable
+                );
+
         return ApiResponse.success(response);
     }
 
