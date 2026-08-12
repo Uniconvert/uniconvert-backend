@@ -17,6 +17,16 @@ import com.uniconvert.backend.domain.user.entity.User;
 import com.uniconvert.backend.domain.user.repository.UserRepository;
 import com.uniconvert.backend.global.exception.CustomException;
 import com.uniconvert.backend.global.exception.ErrorCode;
+import com.uniconvert.backend.domain.currency.service.CurrencyService;
+import com.uniconvert.backend.domain.expense.dto.response.ExpenseListResponse;
+import com.uniconvert.backend.domain.report.dto.response.CategoryAmount;
+import com.uniconvert.backend.global.uni.dto.UniMessageBundleResponse;
+import com.uniconvert.backend.global.uni.dto.UniMessageResponse;
+import com.uniconvert.backend.global.uni.enums.UniSection;
+import com.uniconvert.backend.global.uni.service.UniInsightMessageFactory;
+import com.uniconvert.backend.global.uni.service.UniMessageService;
+
+import java.util.Comparator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -43,6 +53,9 @@ public class ExpenseService {
     private final BudgetRepository budgetRepository;
     private final ExchangeRateService exchangeRateService;
     private final PotAllocationRepository potAllocationRepository;
+    private final CurrencyService currencyService;
+    private final UniInsightMessageFactory uniInsightMessageFactory;
+    private final UniMessageService uniMessageService;
 
     // 지출 등록
     @Transactional
@@ -106,22 +119,95 @@ public class ExpenseService {
     // 지출 목록 조회
     // 필터: 기간, 카테고리 / page=0, size=6
     @Transactional(readOnly = true)
-    public Page<ExpenseListItemResponse> getExpenses(
+    public ExpenseListResponse getExpenses(
             Long userId,
             LocalDateTime startAt,
             LocalDateTime endAt,
             Long categoryId,
             Pageable pageable
     ) {
-        return expenseRepository
-                .findAllByFilter(
+        User user = getUser(userId);
+
+        Page<ExpenseListItemResponse> expenses =
+                expenseRepository
+                        .findAllByFilter(
+                                userId,
+                                startAt,
+                                endAt,
+                                categoryId,
+                                pageable
+                        )
+                        .map(ExpenseListItemResponse::from);
+
+        LocalDate today = LocalDate.now();
+
+        BigDecimal todayExpense =
+                expenseRepository.sumConvertedAmountByPeriod(
                         userId,
-                        startAt,
-                        endAt,
-                        categoryId,
-                        pageable
-                )
-                .map(ExpenseListItemResponse::from);
+                        today.atStartOfDay(),
+                        today.atTime(23, 59, 59)
+                );
+
+        YearMonth currentMonth = YearMonth.from(today);
+
+        LocalDateTime monthStart =
+                currentMonth.atDay(1).atStartOfDay();
+
+        LocalDateTime monthEnd =
+                currentMonth.atEndOfMonth().atTime(23, 59, 59);
+
+        String topCategory =
+                expenseRepository
+                        .findCategoryAmounts(
+                                userId,
+                                monthStart,
+                                monthEnd
+                        )
+                        .stream()
+                        .filter(categoryAmount ->
+                                categoryAmount.amount() != null
+                                        && categoryAmount.amount()
+                                        .compareTo(BigDecimal.ZERO) > 0
+                        )
+                        .max(
+                                Comparator.comparing(
+                                        CategoryAmount::amount
+                                )
+                        )
+                        .map(CategoryAmount::categoryId)
+                        .map(CategoryType::fromId)
+                        .map(CategoryType::getDisplayName)
+                        .orElse(null);
+
+        BigDecimal remainingBudget =
+                getRemainingBudget(
+                        userId,
+                        currentMonth
+                );
+
+        String currencySymbol =
+                currencyService.getSymbolByCode(
+                        user.getHomeCurrencyCode()
+                );
+
+        List<UniMessageResponse> insights =
+                uniInsightMessageFactory.createExpenseInsights(
+                        todayExpense,
+                        topCategory,
+                        remainingBudget,
+                        currencySymbol
+                );
+
+        UniMessageBundleResponse uniMessages =
+                uniMessageService.createBundle(
+                        UniSection.EXPENSE,
+                        insights
+                );
+
+        return new ExpenseListResponse(
+                expenses,
+                uniMessages
+        );
     }
 
     // 최근 지출 조회

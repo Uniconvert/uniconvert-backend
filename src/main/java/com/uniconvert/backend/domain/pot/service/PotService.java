@@ -15,6 +15,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import com.uniconvert.backend.domain.currency.service.CurrencyService;
+import com.uniconvert.backend.domain.pot.dto.response.PotDetailResponse;
+import com.uniconvert.backend.global.uni.dto.UniMessageBundleResponse;
+import com.uniconvert.backend.global.uni.dto.UniMessageResponse;
+import com.uniconvert.backend.global.uni.enums.UniSection;
+import com.uniconvert.backend.global.uni.service.UniInsightMessageFactory;
+import com.uniconvert.backend.global.uni.service.UniMessageService;
 
 import java.math.BigDecimal;
 import java.time.DateTimeException;
@@ -34,15 +41,24 @@ public class PotService {
     private final PotRepository potRepository;
     private final PotAllocationRepository allocationRepository;
     private final UserRepository userRepository;
+    private final CurrencyService currencyService;
+    private final UniInsightMessageFactory uniInsightMessageFactory;
+    private final UniMessageService uniMessageService;
 
     public PotService(
             PotRepository potRepository,
             PotAllocationRepository allocationRepository,
-            UserRepository userRepository
+            UserRepository userRepository,
+            CurrencyService currencyService,
+            UniInsightMessageFactory uniInsightMessageFactory,
+            UniMessageService uniMessageService
     ) {
         this.potRepository = potRepository;
         this.allocationRepository = allocationRepository;
         this.userRepository = userRepository;
+        this.currencyService = currencyService;
+        this.uniInsightMessageFactory = uniInsightMessageFactory;
+        this.uniMessageService = uniMessageService;
     }
 
     /**
@@ -199,7 +215,7 @@ public class PotService {
     /**
      * Pot 상세 조회
      */
-    public PotResponse getOne(
+    public PotDetailResponse getOne(
             Long userId,
             Long potId
     ) {
@@ -208,9 +224,32 @@ public class PotService {
         BigDecimal thisMonthAmount =
                 getThisMonthAmount(pot);
 
-        return PotResponse.from(
-                pot,
-                thisMonthAmount
+        String currencySymbol =
+                currencyService.getSymbolByCode(
+                        pot.getUser().getHomeCurrencyCode()
+                );
+
+        List<UniMessageResponse> insights =
+                uniInsightMessageFactory.createPotInsights(
+                        pot.getName(),
+                        pot.getSavedAmount(),
+                        pot.getTargetAmount(),
+                        thisMonthAmount,
+                        currencySymbol
+                );
+
+        UniMessageBundleResponse uniMessages =
+                uniMessageService.createBundle(
+                        UniSection.POTS,
+                        insights
+                );
+
+        return new PotDetailResponse(
+                PotResponse.from(
+                        pot,
+                        thisMonthAmount
+                ),
+                uniMessages
         );
     }
 

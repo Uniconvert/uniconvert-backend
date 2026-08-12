@@ -17,4 +17,18 @@ public class CurrencyService {
                 new CurrencyResponse("CNY", "중국 위안", "Chinese Yuan", "¥")
         );
     }
+
+    public String getSymbolByCode(String currencyCode) {
+        if (currencyCode == null || currencyCode.isBlank()) {
+            return "";
+        }
+
+        return getCurrencies().stream()
+                .filter(currency ->
+                        currency.code().equalsIgnoreCase(currencyCode)
+                )
+                .map(CurrencyResponse::symbol)
+                .findFirst()
+                .orElse("");
+    }
 }

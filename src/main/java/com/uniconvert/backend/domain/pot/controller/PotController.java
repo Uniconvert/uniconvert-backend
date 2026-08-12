@@ -6,6 +6,7 @@ import com.uniconvert.backend.domain.pot.dto.request.PotUpdateRequest;
 import com.uniconvert.backend.domain.pot.dto.response.PotResponse;
 import com.uniconvert.backend.domain.pot.service.PotService;
 import com.uniconvert.backend.global.security.CustomUserDetails;
+import com.uniconvert.backend.domain.pot.dto.response.PotDetailResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -182,7 +183,7 @@ public class PotController {
                     description = "Pot을 찾을 수 없거나 다른 사용자의 Pot임"
             )
     })
-    public ResponseEntity<PotResponse> getOne(
+    public ResponseEntity<PotDetailResponse> getOne(
             @Parameter(hidden = true)
             @AuthenticationPrincipal
             CustomUserDetails userDetails,
