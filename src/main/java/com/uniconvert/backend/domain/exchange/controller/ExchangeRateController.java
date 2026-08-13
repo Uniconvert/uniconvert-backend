@@ -12,6 +12,14 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import com.uniconvert.backend.domain.exchange.dto.response.CalculatorRateResponse;
+import com.uniconvert.backend.global.uni.dto.UniMessageBundleResponse;
+import com.uniconvert.backend.global.uni.dto.UniMessageResponse;
+import com.uniconvert.backend.global.uni.enums.UniSection;
+import com.uniconvert.backend.global.uni.service.UniInsightMessageFactory;
+import com.uniconvert.backend.global.uni.service.UniMessageService;
+
+import java.util.List;
 
 import com.uniconvert.backend.domain.exchange.dto.response.ConversionResult;
 import com.uniconvert.backend.domain.exchange.dto.response.QuoteHistoryResponse;
@@ -34,19 +42,54 @@ import java.time.LocalDate;
 public class ExchangeRateController {
 
     private final ExchangeRateService exchangeRateService;
+    private final UniInsightMessageFactory uniInsightMessageFactory;
+    private final UniMessageService uniMessageService;
 
     @Operation(summary = "현재 대표 환율 조회")
     @GetMapping("/current")
-    public ApiResponse<ExchangeRateResponse> getCurrent(@RequestParam String from, @RequestParam String to) {
+    public ApiResponse<CalculatorRateResponse> getCurrent(
+            @RequestParam String from,
+            @RequestParam String to
+    ) {
+        ExchangeRateResponse rateResponse;
+
         try {
-            ExchangeRateResponse response = exchangeRateService.getCurrentRateWithChange(from, to);
-            return ApiResponse.success(response);
+            rateResponse =
+                    exchangeRateService.getCurrentRateWithChange(from, to);
+
         } catch (CustomException e) {
+
             if (e.getErrorCode() == ErrorCode.NOT_FOUND) {
-                return ApiResponse.success(ExchangeRateResponse.unavailable(from, to));
+                rateResponse =
+                        ExchangeRateResponse.unavailable(from, to);
+            } else {
+                throw e;
             }
-            throw e;
         }
+
+        List<UniMessageResponse> insights =
+                uniInsightMessageFactory.createCalculatorInsights(
+                        rateResponse.changeRate()
+                );
+
+        UniMessageBundleResponse uniMessages =
+                uniMessageService.createBundle(
+                        UniSection.CALCULATOR,
+                        insights
+                );
+
+        CalculatorRateResponse response =
+                new CalculatorRateResponse(
+                        rateResponse.fromCurrency(),
+                        rateResponse.toCurrency(),
+                        rateResponse.rate(),
+                        rateResponse.rateDate(),
+                        rateResponse.changeRate(),
+                        rateResponse.comparedDate(),
+                        uniMessages
+                );
+
+        return ApiResponse.success(response);
     }
 
     @Operation(summary = "환율 계산기")

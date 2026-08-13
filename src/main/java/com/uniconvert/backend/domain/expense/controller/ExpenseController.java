@@ -2,12 +2,9 @@ package com.uniconvert.backend.domain.expense.controller;
 
 import com.uniconvert.backend.domain.expense.dto.request.ExpenseCreateRequest;
 import com.uniconvert.backend.domain.expense.dto.request.ExpenseUpdateRequest;
-import com.uniconvert.backend.domain.expense.dto.response.ExpenseImportResponse;
-import com.uniconvert.backend.domain.expense.dto.response.ExpenseListItemResponse;
-import com.uniconvert.backend.domain.expense.dto.response.ExpenseResponse;
+import com.uniconvert.backend.domain.expense.dto.response.*;
 import com.uniconvert.backend.domain.expense.service.ExpenseImportService;
 import com.uniconvert.backend.domain.expense.service.ExpenseService;
-import com.uniconvert.backend.domain.expense.dto.response.ExpenseListResponse;
 import com.uniconvert.backend.global.response.ApiResponse;
 import com.uniconvert.backend.global.security.CustomUserDetails;
 import io.swagger.v3.oas.annotations.Operation;
@@ -27,7 +24,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 
 import com.uniconvert.backend.domain.expense.dto.request.MemoDeleteRequest;
-import com.uniconvert.backend.domain.expense.dto.response.MemoListItemResponse;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
@@ -154,17 +151,27 @@ public class ExpenseController {
         BigDecimal remaining = expenseService.getRemainingBudget(userDetails.getUserId(), YearMonth.parse(yearMonth));
         return ApiResponse.success(remaining);
     }
-    @Operation(summary = "메모 모아보기 조회", description = "메모가 있는 지출만 조회. keyword로 메모 내용 검색, sort는 latest(기본)/oldest")
+    @Operation(
+            summary = "메모 모아보기 조회",
+            description = "메모가 있는 지출만 조회. keyword로 메모 내용 검색, sort는 latest(기본)/oldest"
+    )
     @GetMapping("/memos")
-    public ApiResponse<Page<MemoListItemResponse>> getMemos(
+    public ApiResponse<MemoListResponse> getMemos(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "latest") String sort,
             @RequestParam(defaultValue = "0") int page
     ) {
         Pageable pageable = PageRequest.of(page, 6);
-        Page<MemoListItemResponse> response =
-                expenseService.getMemos(userDetails.getUserId(), keyword, sort, pageable);
+
+        MemoListResponse response =
+                expenseService.getMemos(
+                        userDetails.getUserId(),
+                        keyword,
+                        sort,
+                        pageable
+                );
+
         return ApiResponse.success(response);
     }
 

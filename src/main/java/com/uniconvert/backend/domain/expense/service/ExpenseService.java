@@ -7,8 +7,7 @@ import com.uniconvert.backend.domain.exchange.dto.response.ConversionResult;
 import com.uniconvert.backend.domain.exchange.service.ExchangeRateService;
 import com.uniconvert.backend.domain.expense.dto.request.ExpenseCreateRequest;
 import com.uniconvert.backend.domain.expense.dto.request.ExpenseUpdateRequest;
-import com.uniconvert.backend.domain.expense.dto.response.ExpenseListItemResponse;
-import com.uniconvert.backend.domain.expense.dto.response.ExpenseResponse;
+import com.uniconvert.backend.domain.expense.dto.response.*;
 import com.uniconvert.backend.domain.expense.entity.Expense;
 import com.uniconvert.backend.domain.expense.entity.RateSource;
 import com.uniconvert.backend.domain.expense.repository.ExpenseRepository;
@@ -18,7 +17,6 @@ import com.uniconvert.backend.domain.user.repository.UserRepository;
 import com.uniconvert.backend.global.exception.CustomException;
 import com.uniconvert.backend.global.exception.ErrorCode;
 import com.uniconvert.backend.domain.currency.service.CurrencyService;
-import com.uniconvert.backend.domain.expense.dto.response.ExpenseListResponse;
 import com.uniconvert.backend.domain.report.dto.response.CategoryAmount;
 import com.uniconvert.backend.global.uni.dto.UniMessageBundleResponse;
 import com.uniconvert.backend.global.uni.dto.UniMessageResponse;
@@ -34,7 +32,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 
-import com.uniconvert.backend.domain.expense.dto.response.MemoListItemResponse;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import java.math.BigDecimal;
@@ -414,7 +411,7 @@ public class ExpenseService {
     }
     // 메모 모아보기 조회
     @Transactional(readOnly = true)
-    public Page<MemoListItemResponse> getMemos(
+    public MemoListResponse getMemos(
             Long userId,
             String keyword,
             String sort,
@@ -430,9 +427,35 @@ public class ExpenseService {
                 Sort.by(direction, "spentAt")
         );
 
-        return expenseRepository
-                .findMemosByFilter(userId, keyword, sortedPageable)
-                .map(MemoListItemResponse::from);
+        Page<MemoListItemResponse> memos =
+                expenseRepository
+                        .findMemosByFilter(
+                                userId,
+                                keyword,
+                                sortedPageable
+                        )
+                        .map(MemoListItemResponse::from);
+
+        Integer memoCount =
+                keyword == null || keyword.isBlank()
+                        ? Math.toIntExact(memos.getTotalElements())
+                        : null;
+
+        List<UniMessageResponse> insights =
+                uniInsightMessageFactory.createMemoInsights(
+                        memoCount
+                );
+
+        UniMessageBundleResponse uniMessages =
+                uniMessageService.createBundle(
+                        UniSection.MEMO,
+                        insights
+                );
+
+        return new MemoListResponse(
+                memos,
+                uniMessages
+        );
     }
 
     // 메모 다중 삭제 — 지출 자체는 유지, memo만 null 처리
