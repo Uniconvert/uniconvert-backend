@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestControllerAdvice
 @RequiredArgsConstructor
@@ -79,6 +80,29 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(ApiResponse.failure(
                         ErrorCode.VALIDATION_FAILED.getCode(),
+                        message
+                ));
+    }
+
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<ApiResponse<Void>> handleResponseStatusException(
+            ResponseStatusException exception
+    ) {
+        String message = exception.getReason() != null
+                ? exception.getReason()
+                : "요청을 처리할 수 없습니다.";
+
+        HttpStatus status = HttpStatus.resolve(
+                exception.getStatusCode().value()
+        );
+
+        String code = status != null
+                ? status.name()
+                : exception.getStatusCode().toString();
+
+        return ResponseEntity.status(exception.getStatusCode())
+                .body(ApiResponse.failure(
+                        code,
                         message
                 ));
     }
