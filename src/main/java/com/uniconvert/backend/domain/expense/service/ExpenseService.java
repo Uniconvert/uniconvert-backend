@@ -45,6 +45,10 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ExpenseService {
 
+    // expense DECIMAL(19,4)의 정수부 최대 15자리와 동일한 저장 상한입니다.
+    private static final BigDecimal MAX_DECIMAL_19_4 =
+            new BigDecimal("999999999999999.9999");
+
     private final ExpenseRepository expenseRepository;
     private final UserRepository userRepository;
     private final BudgetRepository budgetRepository;
@@ -79,6 +83,10 @@ public class ExpenseService {
                                 4,
                                 java.math.RoundingMode.HALF_UP
                         );
+
+        if (convertedAmountHome.compareTo(MAX_DECIMAL_19_4) > 0) {
+            throw new CustomException(ErrorCode.EXPENSE_AMOUNT_OUT_OF_RANGE);
+        }
 
         Expense expense = new Expense(
                 user,

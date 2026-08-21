@@ -1,6 +1,7 @@
 package com.uniconvert.backend.domain.expense.dto.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -12,7 +13,7 @@ import java.time.LocalDateTime;
 public record ExpenseCreateRequest(
 
         @Schema(description = "지출 금액 (원본 통화 기준)", example = "45.50")
-        @NotNull @Positive
+        @NotNull @Positive @Digits(integer = 15, fraction = 4)
         BigDecimal originalAmount,
 
         @Schema(description = "원본 통화 코드", example = "USD")
